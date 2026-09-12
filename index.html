@@ -463,11 +463,20 @@
     };
 
     document.querySelectorAll('.media-card img').forEach((img) => {
-      const refresh = () => updateMediaState(img);
-      img.addEventListener('load', refresh);
-      img.addEventListener('error', refresh);
-      requestAnimationFrame(refresh);
-      window.setTimeout(refresh, 0);
+      const settle = () => {
+        img.removeEventListener('load', settle);
+        img.removeEventListener('error', settle);
+        updateMediaState(img);
+      };
+
+      if (img.complete) {
+        settle();
+        return;
+      }
+
+      img.addEventListener('load', settle, { once: true });
+      img.addEventListener('error', settle, { once: true });
+      requestAnimationFrame(() => updateMediaState(img));
     });
   </script>
 </body>
