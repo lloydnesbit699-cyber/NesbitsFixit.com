@@ -341,8 +341,8 @@
           <a class="button button-secondary" href="mailto:david@nesbitsfixit.com">Email for Quotes</a>
         </div>
         <p class="lead" style="margin-top: 1rem; margin-bottom: 0; font-size: 0.95rem;">
-          On desktop, call <a href="tel:+12295820009">(229) 582-0009</a> or email
-          <a href="mailto:david@nesbitsfixit.com">david@nesbitsfixit.com</a>.
+          Prefer not to scan or tap a shortcut? Call <a href="tel:+12295820009">(229) 582-0009</a>
+          or email <a href="mailto:david@nesbitsfixit.com">david@nesbitsfixit.com</a>.
         </p>
       </section>
 
@@ -454,12 +454,20 @@
   </footer>
 
   <script>
-    document.querySelectorAll('.media-card img').forEach((img) => {
-      if (img.complete && img.naturalWidth === 0) {
-        img.closest('.media-card').classList.add('missing-media');
-      } else {
-        img.addEventListener('error', () => img.closest('.media-card').classList.add('missing-media'), { once: true });
+    const updateMediaState = (img) => {
+      const card = img.closest('.media-card');
+      if (!card || !img.complete) {
+        return;
       }
+      card.classList.toggle('missing-media', img.naturalWidth === 0);
+    };
+
+    document.querySelectorAll('.media-card img').forEach((img) => {
+      const refresh = () => updateMediaState(img);
+      img.addEventListener('load', refresh);
+      img.addEventListener('error', refresh);
+      requestAnimationFrame(refresh);
+      window.setTimeout(refresh, 0);
     });
   </script>
 </body>
