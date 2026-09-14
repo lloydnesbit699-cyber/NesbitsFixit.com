@@ -46,7 +46,7 @@ This repo hosts NesbitsFixIt.com on GitHub Pages. Single `index.html` static fil
 
 ### GitHub Pages Setup:
 1. Settings → Pages → Source: **GitHub Actions**
-2. Push to `main` or run the `Deploy GitHub Pages site` workflow manually
+2. Push to `Main` or run the `Deploy GitHub Pages site` workflow manually
 3. GitHub publishes the site to `https://lloydnesbit699-cyber.github.io/NesbitsFixit.com/`
 4. No paid domain, registrar DNS, or `CNAME` file is required
 
