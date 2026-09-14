@@ -39,19 +39,16 @@ This repo hosts NesbitsFixIt.com on GitHub Pages. Single `index.html` static fil
 
 ### Required files in root:
 - `index.html` — CLEAN static site (NOT the React artifact iframe file)
-- `CNAME` — contains `NesbitsFixit.com`
 - `README.md` — this file
 - `LICENSE` — MIT for code, brand reserved
 - `.gitignore` — ignore OS files
-- `nesbits_logo_sides_tilted.png` — master logo
-- `qr-call.png` — scan-to-call QR
-- `gallery/handyman_headshot_portrait.webp` — owner photo
+- `.github/workflows/deploy.yml` — GitHub Pages deployment workflow
 
 ### GitHub Pages Setup:
-1. Settings → Pages → Deploy from branch: main / root
-2. Custom domain: NesbitsFixit.com → Save (creates CNAME)
-3. DNS at registrar: 4 A records @ → 185.199.108.153, .109, .110, .111 + CNAME www → lloydnesbit699-cyber.github.io
-4. Wait for DNS check → Enforce HTTPS
+1. Settings → Pages → Source: **GitHub Actions**
+2. Push to `main` or run the `Deploy GitHub Pages site` workflow manually
+3. GitHub publishes the site to `https://lloydnesbit699-cyber.github.io/NesbitsFixit.com/`
+4. No paid domain, registrar DNS, or `CNAME` file is required
 
 ### Why your first commit broke:
 You committed the React Artifact wrapper file that starts with `<iframe title="Shared artifact">` and `$RB=[];$RV=function(a)` — that's a preview container, not the real site. It shows `PNG` garbage when opened as text. Replace it with CLEAN_index.html.
