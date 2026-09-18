@@ -201,6 +201,7 @@ h1{font-size:clamp(34px,5vw,60px);font-weight:900;line-height:.9;letter-spacing:
 </div>
 <div class="quote-field"><label>WHAT DO YOU NEED?</label><input name="service" type="text" required placeholder="e.g. Drywall patch, phone screen, ceiling fan"></div>
 <div class="quote-field"><label>DETAILS</label><textarea name="details" rows="4" placeholder="Tell me a little more — sizes, model numbers, when you need it done..." style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:12px;color:#fff;font-size:15px;padding:12px 14px;font-family:Inter,system-ui;resize:vertical"></textarea></div>
+<div class="quote-field"><label style="display:flex;gap:10px;align-items:center;cursor:pointer;font-size:13px"><input name="urgent" type="checkbox" value="yes" style="width:20px;height:20px;accent-color:#ff3b30;flex:none"> <span>THIS IS URGENT — something's broken <em>now</em> (burst pipe, no power, lockout…)</span></label></div>
 <div><button type="submit" class="btn btn-red" style="border:none;cursor:pointer;font-family:Inter,system-ui">Send quote request</button></div>
 <p class="mono" style="font-size:10px;color:rgba(255,255,255,.4);line-height:1.6">YOUR INFO STAYS WITH ME — IT'S ONLY EMAILED TO DAVID, NEVER POSTED OR SHARED.</p>
 </form>
@@ -256,6 +257,7 @@ h1{font-size:clamp(34px,5vw,60px);font-weight:900;line-height:.9;letter-spacing:
         phone: form.elements.phone.value,
         service: form.elements.service.value,
         details: form.elements.details.value,
+        urgent: form.elements.urgent.checked ? "YES - urgent" : "no",
         _subject: "New quote request — Nesbit's Fix-It",
         _template: "table",
         _captcha: "false",
