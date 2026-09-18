@@ -236,6 +236,45 @@ h1{font-size:clamp(34px,5vw,60px);font-weight:900;line-height:.9;letter-spacing:
 <div style="font-size:11px;color:rgba(255,255,255,.3)">© NESBIT'S FIX-IT 2026</div>
 </footer>
 <script>
+// Quiet submit: POST the quote in the background so the visitor never
+// leaves the page. Falls back to a normal post if the network blocks fetch.
+(function(){
+  var form = document.getElementById("quoteForm");
+  var thanks = document.getElementById("quoteThanks");
+  if (!form || !thanks) return;
+  form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var btn = form.querySelector('button[type="submit"]');
+    var orig = btn ? btn.textContent : "";
+    if (btn) { btn.disabled = true; btn.textContent = "Sending…"; }
+    var honey = form.querySelector('[name="_honey"]');
+    fetch("https://formsubmit.co/ajax/lloydnesbit699@gmail.com", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({
+        name: form.elements.name.value,
+        phone: form.elements.phone.value,
+        service: form.elements.service.value,
+        details: form.elements.details.value,
+        _subject: "New quote request — Nesbit's Fix-It",
+        _template: "table",
+        _captcha: "false",
+        _honey: honey ? honey.value : ""
+      })
+    }).then(function(r){ return r.json(); })
+    .then(function(){
+      form.style.display = "none";
+      thanks.style.display = "block";
+      try { thanks.scrollIntoView({block: "center", behavior: "smooth"}); } catch (e) {}
+    })
+    .catch(function(){
+      if (btn) { btn.disabled = false; btn.textContent = orig; }
+      form.submit(); // fallback: normal post (uses _next to come back)
+    });
+  });
+})();
+</script>
+<script>
 (function(){
   try {
     if (new URLSearchParams(location.search).get("thanks") === "1") {
