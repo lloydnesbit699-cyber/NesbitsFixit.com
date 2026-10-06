@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://lloydnesbit699-cyber.github.io/NesbitsFixit.com/sitemap.xml
