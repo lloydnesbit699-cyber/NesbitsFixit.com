@@ -192,8 +192,9 @@ h1{font-size:clamp(34px,5vw,60px);font-weight:900;line-height:.9;letter-spacing:
 <form id="quoteForm" action="https://formsubmit.co/mrfixitall@nesbitsfixit.com" method="POST" style="margin-top:16px;display:grid;gap:12px">
 <input type="hidden" name="_subject" value="New quote request — Nesbit's Fix-It">
 <input type="hidden" name="_template" value="table">
-<input type="hidden" name="_captcha" value="false">
+<input type="hidden" name="_captcha" value="true">
 <input type="hidden" name="_next" value="https://lloydnesbit699-cyber.github.io/NesbitsFixit.com/?thanks=1">
+<input type="hidden" name="_blacklist" value="seo services, backlink, free followers, free money, crypto investment, bitcoin doubler, forex trading, online casino, viagra, cialis, work from home, make money fast, dating site, escort service">
 <input type="text" name="_honey" style="display:none">
 <div class="quote-grid" style="grid-template-columns:1fr 1fr">
 <div class="quote-field"><label>YOUR NAME</label><input name="name" type="text" required placeholder="Jane Doe"></div>
@@ -261,14 +262,20 @@ h1{font-size:clamp(34px,5vw,60px);font-weight:900;line-height:.9;letter-spacing:
         urgent: form.elements.urgent.checked ? "YES - urgent" : "no",
         _subject: "New quote request — Nesbit's Fix-It",
         _template: "table",
-        _captcha: "false",
+        _captcha: "true",
+        _blacklist: "seo services, backlink, free followers, free money, crypto investment, bitcoin doubler, forex trading, online casino, viagra, cialis, work from home, make money fast, dating site, escort service",
         _honey: honey ? honey.value : ""
       })
-    }).then(function(r){ return r.json(); })
-    .then(function(){
-      form.style.display = "none";
-      thanks.style.display = "block";
-      try { thanks.scrollIntoView({block: "center", behavior: "smooth"}); } catch (e) {}
+    }).then(function(r){ return r.json().then(function(data){ return {ok: r.ok, data: data}; }); })
+    .then(function(res){
+      var sent = res.ok && res.data && (res.data.success === true || res.data.success === "true");
+      if (sent) {
+        form.style.display = "none";
+        thanks.style.display = "block";
+        try { thanks.scrollIntoView({block: "center", behavior: "smooth"}); } catch (e) {}
+      } else {
+        form.submit(); // captcha or spam filter engaged: normal post shows FormSubmit's captcha page
+      }
     })
     .catch(function(){
       if (btn) { btn.disabled = false; btn.textContent = orig; }
