@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crumbs World — A Vault Dungeon Adventure</title>
+<meta name="description" content="The official front door of Crumbs World, a pixel-art vault-dungeon game. Play, news, and the adventurers who guard the vault.">
+<style>
+  :root {
+    --gold: #D4AF37;
+    --gold-dim: #a8872a;
+    --bg: #141414;
+    --panel: #1e1e1e;
+    --card: #262626;
+    --text: #e8e0cc;
+    --muted: #b8ad90;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: var(--bg);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 72px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 120px),
+      radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.08), transparent 55%);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  a { color: var(--gold); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---- top nav ---- */
+  nav {
+    display: flex; align-items: center; gap: 2rem;
+    padding: 0.7rem 1.5rem;
+    border-bottom: 1px solid #3a3220;
+    background: rgba(0,0,0,0.35);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 0.6rem; font-family: Georgia, "Times New Roman", serif; font-weight: bold; letter-spacing: 0.08em; color: var(--gold); font-size: 1.05rem; white-space: nowrap; }
+  .brand .mark { font-size: 1.4rem; }
+  .nav-links { display: flex; gap: 1.8rem; margin: 0 auto; }
+  .nav-links a { color: var(--text); font-size: 0.95rem; letter-spacing: 0.04em; }
+  .nav-links a:hover { color: var(--gold); text-decoration: none; }
+  .nav-icons { display: flex; gap: 1rem; font-size: 1.15rem; }
+  .nav-icons a { color: var(--text); }
+  .nav-icons a:hover { color: var(--gold); text-decoration: none; }
+
+  /* ---- hero ---- */
+  header { text-align: center; padding: 2.6rem 1rem 2rem; }
+  header h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2.4rem, 7vw, 4.2rem);
+    letter-spacing: 0.06em; color: var(--gold);
+    text-shadow: 0 0 24px rgba(212,175,55,0.35), 0 2px 0 #6b5510;
+    font-weight: normal;
+  }
+  header .emblem { font-size: 1.6rem; margin: 0.2rem 0 0.4rem; }
+  header p.tagline { color: var(--muted); font-size: 1.05rem; letter-spacing: 0.05em; }
+  .btn-gold {
+    display: inline-block; margin-top: 1.3rem;
+    background: linear-gradient(180deg, #e8c95a, var(--gold) 55%, #b08d2a);
+    color: #1a1405; font-weight: 700; letter-spacing: 0.18em;
+    padding: 0.85rem 3.2rem; border-radius: 6px;
+    border: 1px solid #8a6d1f;
+    box-shadow: 0 4px 18px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.5);
+    font-size: 1.05rem; text-transform: uppercase;
+  }
+  .btn-gold:hover { text-decoration: none; filter: brightness(1.07); }
+  .btn-gold:active { transform: translateY(1px); }
+
+  /* ---- three columns ---- */
+  main {
+    max-width: 1280px; margin: 0 auto; padding: 1rem 1.25rem 2.5rem;
+    display: grid; grid-template-columns: 300px 1fr 300px; gap: 1.5rem; align-items: start;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--gold-dim);
+    border-radius: 10px;
+    padding: 1.3rem 1.2rem;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+  }
+  .panel h2 {
+    font-family: Georgia, "Times New Roman", serif; font-weight: normal;
+    color: var(--gold); font-size: 1.25rem; letter-spacing: 0.05em;
+    margin-bottom: 1rem; text-align: center;
+  }
+
+  /* login */
+  .login label { display: block; font-size: 0.85rem; color: var(--muted); margin: 0.7rem 0 0.25rem; }
+  .login input {
+    width: 100%; padding: 0.6rem 0.7rem; border-radius: 6px;
+    border: 1px solid #4a4230; background: #121212; color: var(--text);
+    font-size: 0.95rem;
+  }
+  .login input:focus { outline: none; border-color: var(--gold); }
+  .login .btn-gold { display: block; text-align: center; padding: 0.7rem 1rem; margin-top: 1.1rem; width: 100%; }
+  .login .create { text-align: center; margin-top: 0.9rem; font-size: 0.9rem; color: var(--muted); }
+  .login .note { text-align: center; margin-top: 0.6rem; font-size: 0.78rem; color: #8d8271; }
+
+  /* adventurers */
+  .adventurers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; }
+  .adventurer {
+    background: var(--card); border: 1px solid #4a4230; border-radius: 8px;
+    overflow: hidden; text-align: center; padding-bottom: 0.7rem;
+  }
+  .adventurer .portrait {
+    background: #101010; height: 260px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .adventurer .portrait img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .adventurer h3 { color: var(--gold); font-family: Georgia, serif; font-weight: normal; font-size: 1.05rem; margin-top: 0.6rem; letter-spacing: 0.04em; }
+  .adventurer p { color: var(--muted); font-size: 0.82rem; }
+
+  /* news */
+  .news-item { padding: 0.7rem 0; border-bottom: 1px solid #33302a; }
+  .news-item:last-child { border-bottom: none; }
+  .news-item h3 { color: var(--gold); font-size: 0.98rem; font-weight: 600; }
+  .news-item .date { color: #8d8271; font-size: 0.78rem; margin: 0.1rem 0 0.3rem; }
+  .news-item p { color: var(--muted); font-size: 0.88rem; }
+
+  /* chat */
+  .chat { max-width: 1280px; margin: 0 auto; padding: 0 1.25rem 2.5rem; text-align: center; }
+  .chat .panel { display: inline-block; padding: 1.4rem 2.2rem; }
+  .chat h2 { font-family: Georgia, serif; font-weight: normal; color: var(--gold); font-size: 1.2rem; margin-bottom: 0.4rem; }
+  .chat p { color: var(--muted); font-size: 0.92rem; }
+  .chat .btn-gold { margin-top: 1rem; padding: 0.7rem 2rem; font-size: 0.95rem; }
+
+  footer {
+    text-align: center; padding: 1.6rem 1rem 2rem;
+    border-top: 1px solid #3a3220; color: #8d8271; font-size: 0.85rem;
+  }
+  footer .copy { color: var(--muted); margin-bottom: 0.3rem; }
+
+  /* ---- mobile: stack the columns ---- */
+  @media (max-width: 900px) {
+    .nav-links { display: none; }
+    main { grid-template-columns: 1fr; }
+    .adventurers-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 520px) {
+    .adventurers-grid { grid-template-columns: 1fr; }
+    .adventurer .portrait { height: 300px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand"><span class="mark">&#128009;</span> CRUMBS WORLD</div>
+  <div class="nav-links">
+    <a href="#play">Play</a>
+    <a href="#news">News</a>
+    <a href="#adventurers">World</a>
+    <a href="#chat">Community</a>
+  </div>
+  <div class="nav-icons">
+    <a href="https://harley.tail1044f8.ts.net/" title="Your account">&#128100;</a>
+    <a href="https://harley.tail1044f8.ts.net/" title="Settings">&#9881;</a>
+  </div>
+</nav>
+
+<header id="play">
+  <h1>CRUMBS WORLD</h1>
+  <div class="emblem">&#128009;</div>
+  <p class="tagline">A vault dungeon adventure</p>
+  <a class="btn-gold" href="https://harley.tail1044f8.ts.net/">Play</a>
+  <p class="tagline" style="margin-top:1rem; font-size:0.92rem;">The vault is open. Step inside and play.</p>
+</header>
+
+<main>
+  <!-- Login, left -->
+  <section class="panel login" aria-label="Welcome back">
+    <h2>Welcome back</h2>
+    <label for="username">Username</label>
+    <input id="username" type="text" placeholder="your username" autocomplete="username">
+    <label for="password">Password</label>
+    <input id="password" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password">
+    <a class="btn-gold" href="https://harley.tail1044f8.ts.net/">Log In</a>
+    <p class="create">No account? <a href="https://harley.tail1044f8.ts.net/">Create account</a></p>
+    <p class="note">Sign-in happens on the game&rsquo;s own login screen.</p>
+  </section>
+
+  <!-- Adventurers, center -->
+  <section class="panel" id="adventurers" aria-label="Meet the Adventurers">
+    <h2>&#10022; Meet the Adventurers &#10022;</h2>
+    <div class="adventurers-grid">
+      <div class="adventurer">
+        <div class="portrait"><img src="images/melody-portrait.png" alt="Melody"></div>
+        <h3>Melody</h3>
+        <p>Guide of the Vault</p>
+      </div>
+      <div class="adventurer">
+        <div class="portrait"><img src="images/aetherion.png" alt="Aetherion"></div>
+        <h3>Aetherion</h3>
+        <p>Dragon Hero</p>
+      </div>
+      <div class="adventurer">
+        <div class="portrait"><img src="images/wren.png" alt="Wren"></div>
+        <h3>Wren</h3>
+        <p>Keeper of the Vault</p>
+      </div>
+      <div class="adventurer">
+        <div class="portrait"><img src="images/melody-fullbody.png" alt="Melody, full form"></div>
+        <h3>Melody</h3>
+        <p>Guide of the Vault</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- News, right -->
+  <section class="panel" id="news" aria-label="News">
+    <h2>News</h2>
+    <div class="news-item">
+      <h3>The front door is open</h3>
+      <p class="date">Nov 15, 2026</p>
+      <p>The official front door is live — play, news, and the crew, all in one place.</p>
+    </div>
+    <div class="news-item">
+      <h3>3D viewers are live</h3>
+      <p class="date">Nov 14, 2026</p>
+      <p>Four 3D viewers are up: Aetherion, the tree, and the door. Take a look around.</p>
+    </div>
+    <div class="news-item">
+      <h3>The game is back up</h3>
+      <p class="date">Nov 14, 2026</p>
+      <p>Crumbs World is back online after the Harley recovery. Your vaults are waiting.</p>
+    </div>
+  </section>
+</main>
+
+<section class="chat" id="chat">
+  <div class="panel">
+    <h2>Chat with the crew</h2>
+    <p>Questions, bug reports, or just saying hi — reach us on Messenger.</p>
+    <a class="btn-gold" href="https://www.facebook.com/profile.php?id=1361649423709259">Chat with the crew on Messenger</a>
+  </div>
+</section>
+
+<footer>
+  <p class="copy">&copy; 2026 Crumbs World</p>
+  <p>Built for adventurers. Explore the vault. Stay curious.</p>
+</footer>
+
+</body>
+</html>
