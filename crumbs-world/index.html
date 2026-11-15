@@ -19,9 +19,13 @@
   body {
     background-color: var(--bg);
     background-image:
-      repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 72px),
-      repeating-linear-gradient(90deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 120px),
-      radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.08), transparent 55%);
+      radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.10), transparent 55%),
+      linear-gradient(rgba(20,20,20,0.80), rgba(20,20,20,0.88)),
+      url("images/vault-background.jpg");
+    background-size: auto, auto, cover;
+    background-position: center top, center, center top;
+    background-attachment: scroll, scroll, fixed;
+    background-repeat: no-repeat;
     color: var(--text);
     font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
     line-height: 1.5;
