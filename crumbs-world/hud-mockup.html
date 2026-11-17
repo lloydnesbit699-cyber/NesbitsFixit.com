@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="mockup-build" content="b1794887595">
+<meta name="mockup-build" content="b1794890488">
 <title>Crumbs World — HUD mockup (all 555 controls)</title>
 <style>
 :root{--bg:#1b1430;--panel:#241d3d;--panel2:#2d2450;--line:#4a3f75;--ink:#f2eefc;--dim:#b9aee0;--acc:#ffb347;--acc2:#7fe3ff;--hl:#ff9ff3}
@@ -164,7 +164,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
 .mc-tour-hl{outline:3px solid var(--acc);outline-offset:3px;box-shadow:0 0 22px 6px rgba(255,179,71,.6)}
 #hint-bubble{position:fixed;z-index:10003;max-width:300px;background:rgba(12,8,26,.96);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;display:none;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .hb-kind{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-.hb-kind.jigsaw{color:var(--acc)}
+.hb-kind.velithra{color:var(--acc)}
 .hb-kind.game{color:var(--acc2)}
 @media (max-width:700px){#welcome-card{left:16px;right:16px;top:480px;width:auto}#tour-card{bottom:170px}}
 </style>
@@ -217,7 +217,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
 <div id="toast"></div>
 <svg id="tether-svg" width="100%" height="100%" aria-hidden="true"><line id="tether-line" x1="0" y1="0" x2="0" y2="0" /></svg>
 <div id="welcome-card">
-  <div class="wc-title">Hey — this here is Jigsaw</div>
+  <div class="wc-title">Hey — this here is Veli'Thra qo'choH</div>
   <div class="wc-text">We're gonna help you make this fit your workflow and style.</div>
   <div class="wc-btns">
     <button type="button" class="wc-btn primary" id="wc-view">View hints</button>
@@ -1415,14 +1415,14 @@ document.getElementById('tour-close').addEventListener('click', ()=> endTour());
 
 // Hover hints: after a still hover (800ms), a small bubble names the
 // thing under the pointer and says which side it belongs to —
-// Jigsaw's own controls (chrome, trays, editor, notes) vs the game's
+// Veli'Thra qo'choH's own controls (chrome, trays, editor, notes) vs the game's
 // controls (the panels and buttons of the page itself). Never shows
 // while a button is held, while the tour or the welcome is up, or
 // while a move is armed. The bubble is pointer-events:none, so it
 // can never swallow a click. On phones (no hover), tapping an
 // already-selected control shows the same bubble (stage click
 // handler above).
-const JIGSAW_HINTS = {
+const VELITHRA_HINTS = {
   'btn-showall': "Show every panel, whatever mode you're in.",
   'btn-expandall': 'Open all the panels at once — or fold them all shut.',
   'btn-note': 'Drop a sticky note you can pin to anything.',
@@ -1442,7 +1442,7 @@ const hintText = document.getElementById('hint-text');
 let hintTimer = null, hintTarget = null, hintSticky = false;
 function hintFor(el){
   const note = el.closest('.mc-note');
-  if (note) return {kind:'Jigsaw', text:'Your sticky note. Drag it onto anything to pin it there, or drag it off to float it free.'};
+  if (note) return {kind:"Veli'Thra qo'choH", text:'Your sticky note. Drag it onto anything to pin it there, or drag it off to float it free.'};
   const w = el.closest('.mc-ctl');
   if (w){
     const lab = (labelEl(w) ? labelEl(w).textContent : '').trim() || (w.dataset.cid || w.dataset.key);
@@ -1454,19 +1454,19 @@ function hintFor(el){
     return {kind:'Game', text:'“' + name + '” — one of the game’s panels. Tap its header to open it; drag the header to move the whole panel.'};
   }
   const trayItem = el.closest('.mc-ctray-item');
-  if (trayItem) return {kind:'Jigsaw', text:'Tap to pop this control out of its tray.'};
+  if (trayItem) return {kind:"Veli'Thra qo'choH", text:'Tap to pop this control out of its tray.'};
   const trayHead = el.closest('.mc-ctray-head');
   if (trayHead){
     const nm = trayHead.querySelector('.mc-ctray-name');
-    return {kind:'Jigsaw', text:'The ' + (nm ? nm.textContent : 'tray') + ' tray — open it, tap something, and it pops out onto the canvas.'};
+    return {kind:"Veli'Thra qo'choH", text:'The ' + (nm ? nm.textContent : 'tray') + ' tray — open it, tap something, and it pops out onto the canvas.'};
   }
   const modeBtn = el.closest('[data-modebtn]');
-  if (modeBtn) return {kind:'Jigsaw', text:'Show only the panels for this mode.'};
+  if (modeBtn) return {kind:"Veli'Thra qo'choH", text:'Show only the panels for this mode.'};
   const jw = el.closest('#chrome .ch-btn, #chrome .ch-lab, #tray-dock-head, #dlg-launcher, #editor');
   if (jw){
     const key = jw.id || (jw.closest('label') && jw.closest('label').querySelector('#hl-color') ? 'hl-color' : '');
-    const msg = JIGSAW_HINTS[key] || JIGSAW_HINTS[jw.id];
-    if (msg) return {kind:'Jigsaw', text:msg};
+    const msg = VELITHRA_HINTS[key] || VELITHRA_HINTS[jw.id];
+    if (msg) return {kind:"Veli'Thra qo'choH", text:msg};
   }
   return null;
 }
@@ -1476,7 +1476,7 @@ function showHint(el){
   hintSticky = false; // a hover-shown bubble is not sticky; the tap
   // path sets hintSticky = true after calling this
   hintKind.textContent = h.kind;
-  hintKind.className = 'hb-kind ' + (h.kind === 'Jigsaw' ? 'jigsaw' : 'game');
+  hintKind.className = 'hb-kind ' + (h.kind === "Veli'Thra qo'choH" ? 'velithra' : 'game');
   hintText.textContent = h.text;
   hintBubble.style.display = 'block';
   const r = el.getBoundingClientRect();
