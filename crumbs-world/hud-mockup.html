@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="mockup-build" content="b1794886678">
+<meta name="mockup-build" content="b1794887595">
 <title>Crumbs World — HUD mockup (all 555 controls)</title>
 <style>
 :root{--bg:#1b1430;--panel:#241d3d;--panel2:#2d2450;--line:#4a3f75;--ink:#f2eefc;--dim:#b9aee0;--acc:#ffb347;--acc2:#7fe3ff;--hl:#ff9ff3}
@@ -22,7 +22,8 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
 .ch-btn.on{background:var(--acc);color:#241505;border-color:var(--acc);font-weight:700}
 .ch-lab{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:4px}
 #hl-color{width:32px;height:28px;border:1px solid var(--line);border-radius:8px;background:#171029;padding:0;cursor:pointer}
-#chrome .hint{font-size:12px;color:var(--dim);width:100%}
+#chrome .hint{font-size:12px;color:var(--dim);width:100%;display:flex;gap:8px;align-items:flex-start}
+#chrome .hint .hint-text{flex:1;min-width:0}
 #units{position:absolute;left:0;right:0;top:76px;min-height:760px;height:calc(100% - 76px)}
 .mc-unit{position:absolute;min-width:180px;max-width:360px;background:rgba(36,29,61,.96);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.45);display:flex;flex-direction:column;max-height:72vh}
 .mc-unit.mc-bar{max-width:700px}
@@ -140,6 +141,32 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
 #move-banner button{background:#10233a;color:#fff;border:none;border-radius:12px;padding:4px 12px;margin-left:10px;cursor:pointer;font-weight:700}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:10000;background:var(--acc);color:#241505;font-weight:700;padding:8px 16px;border-radius:20px;display:none}
 @media (max-width:700px){.mc-unit{max-width:94vw}.mc-unit.mc-tray{width:88vw}.mc-unit.mc-sheet{width:94vw}#tray-dock{right:10px;bottom:56px;max-height:64vh}}
+/* v3 stage 4 — welcome, tour, hover hints. The welcome card is
+   pointer-events:none except its buttons and dismisses on any
+   outside pointerdown, so it can never block a drag or a tap. Its
+   spot is deliberate (see the docstring): desktop left/top clear of
+   the backdrop pixel sample band and of every header center; on
+   phones it sits below the phone sample band. */
+#welcome-card{position:fixed;left:12px;top:200px;width:310px;z-index:10002;background:rgba(12,8,26,.96);border:2px solid var(--acc);border-radius:14px;padding:12px 14px;box-shadow:0 12px 36px rgba(0,0,0,.55);display:none;pointer-events:none}
+#welcome-card button{pointer-events:auto}
+.wc-title{font-weight:800;font-size:15px;margin-bottom:4px}
+.wc-text{font-size:13px;color:var(--ink);margin-bottom:10px}
+.wc-btns{display:flex;gap:8px}
+.wc-btn{background:#3a2f66;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
+.wc-btn.primary{background:var(--acc);color:#241505;border-color:var(--acc);font-weight:700}
+.wc-btn:disabled{opacity:.45;cursor:default}
+#tour-card{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);width:460px;max-width:92vw;z-index:10002;background:rgba(12,8,26,.97);border:2px solid var(--acc);border-radius:14px;padding:12px 14px;box-shadow:0 12px 36px rgba(0,0,0,.55);display:none}
+.tc-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+#tour-step-label{font-size:12px;font-weight:800;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;flex:1}
+#tour-close{background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1}
+#tour-text{font-size:14px;margin-bottom:10px}
+.tc-btns{display:flex;gap:8px;justify-content:flex-end}
+.mc-tour-hl{outline:3px solid var(--acc);outline-offset:3px;box-shadow:0 0 22px 6px rgba(255,179,71,.6)}
+#hint-bubble{position:fixed;z-index:10003;max-width:300px;background:rgba(12,8,26,.96);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;display:none;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.hb-kind{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.hb-kind.jigsaw{color:var(--acc)}
+.hb-kind.game{color:var(--acc2)}
+@media (max-width:700px){#welcome-card{left:16px;right:16px;top:480px;width:auto}#tour-card{bottom:170px}}
 </style>
 </head>
 <body>
@@ -164,7 +191,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
   <button type="button" class="ch-btn" id="btn-copy">📋 Copy layout link</button>
   <button type="button" class="ch-btn" id="btn-download">⬇ Download adjusted file</button>
   <button type="button" class="ch-btn" id="btn-reset">↩ Reset layout</button>
-  <span class="hint">Panels start collapsed — tap a header to open it, or Expand all. Tap a control to edit label, color, size. Drag the ⠿ grip to move it — onto a panel, into a section, or off onto the canvas. Trays (bottom-right) hold every control — pop one out and drag it anywhere. ＋ Note adds a sticky note — dock it on anything, drag it off to float free. Highlight sets the border color — press or drag an object and it glows brighter. The link updates as you drag.</span>
+  <span class="hint"><button type="button" class="ch-btn" id="btn-tour" title="Take the tour again">❓ Tour</button><span class="hint-text">Panels start collapsed — tap a header to open it, or Expand all. Tap a control to edit it. Drag the ⠿ grip to move it anywhere — onto a panel or off onto the canvas. Trays (bottom-right) hold every control. ＋ Note pins a note on anything. Highlight sets the border color. The link updates as you drag.</span></span>
 </div>
 <div id="tray-dock" class="mc-collapsed"><div id="tray-dock-body"><div class="mc-ctray" data-cat="panels-dialogs"><div class="mc-ctray-head"><span class="mc-ctray-name">Panels &amp; dialogs</span><span class="mc-ctray-count">153</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div><div class="mc-ctray" data-cat="trays"><div class="mc-ctray-head"><span class="mc-ctray-name">Trays</span><span class="mc-ctray-count">177</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div><div class="mc-ctray" data-cat="sheets"><div class="mc-ctray-head"><span class="mc-ctray-name">Sheets</span><span class="mc-ctray-count">132</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div><div class="mc-ctray" data-cat="menus"><div class="mc-ctray-head"><span class="mc-ctray-name">Menus</span><span class="mc-ctray-count">51</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div><div class="mc-ctray" data-cat="bars"><div class="mc-ctray-head"><span class="mc-ctray-name">Bars</span><span class="mc-ctray-count">25</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div><div class="mc-ctray" data-cat="chips"><div class="mc-ctray-head"><span class="mc-ctray-name">Chips &amp; floats</span><span class="mc-ctray-count">17</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div></div><div id="tray-dock-head">Object trays · <span id="tray-dock-count">555</span> <span id="tray-dock-chev">▸</span></div></div>
 <div id="dlg-launcher" class="mc-collapsed">
@@ -189,6 +216,23 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
 <div id="move-banner"><span id="move-msg">Tap a panel or section to move the control there — or tap empty canvas to float it free.</span> <button type="button" id="move-cancel">Cancel</button></div>
 <div id="toast"></div>
 <svg id="tether-svg" width="100%" height="100%" aria-hidden="true"><line id="tether-line" x1="0" y1="0" x2="0" y2="0" /></svg>
+<div id="welcome-card">
+  <div class="wc-title">Hey — this here is Jigsaw</div>
+  <div class="wc-text">We're gonna help you make this fit your workflow and style.</div>
+  <div class="wc-btns">
+    <button type="button" class="wc-btn primary" id="wc-view">View hints</button>
+    <button type="button" class="wc-btn" id="wc-skip">Skip</button>
+  </div>
+</div>
+<div id="tour-card">
+  <div class="tc-top"><span id="tour-step-label">1 of 7</span><button type="button" id="tour-close" aria-label="Close tour">✕</button></div>
+  <div id="tour-text"></div>
+  <div class="tc-btns">
+    <button type="button" class="wc-btn" id="tour-back">‹ Back</button>
+    <button type="button" class="wc-btn primary" id="tour-next">Next ›</button>
+  </div>
+</div>
+<div id="hint-bubble"><span id="hint-kind" class="hb-kind"></span><span id="hint-text"></span></div>
 <script>
 
 const UNITS = {"u-topbar": {"name": "Top bar", "kind": "bar", "modes": ["Build", "World", "Population", "Play"], "n": 4, "x": 300, "y": 0}, "u-menu": {"name": "Hamburger menu", "kind": "menu", "modes": ["all"], "n": 51, "x": 300, "y": 16}, "u-tray-left": {"name": "Left tray", "kind": "tray", "modes": ["Build"], "n": 70, "x": 0, "y": 0}, "u-tray-right": {"name": "Right tray", "kind": "tray", "modes": ["Build", "World", "Population"], "n": 107, "x": 980, "y": 0}, "u-sheet": {"name": "Bottom sheet", "kind": "sheet", "modes": ["all"], "n": 121, "x": 0, "y": 548}, "u-hotbar": {"name": "Hotbar", "kind": "bar", "modes": ["Build", "Population"], "n": 7, "x": 530, "y": 588}, "u-brushbar": {"name": "Brush bar", "kind": "bar", "modes": ["Build", "World", "Population", "Play"], "n": 5, "x": 540, "y": 428}, "u-zoom": {"name": "Zoom cluster", "kind": "chip", "modes": ["Build", "World", "Population", "Play"], "n": 1, "x": 928, "y": 608}, "u-dpad": {"name": "D-pad", "kind": "chip", "modes": ["Build", "World", "Population", "Play"], "n": 4, "x": 330, "y": 608}, "u-minimap": {"name": "Minimap", "kind": "chip", "modes": ["Build", "World", "Population", "Play"], "n": 1, "x": 1120, "y": 568}, "u-modeswitch": {"name": "Mode switch", "kind": "bar", "modes": ["Build", "World", "Population", "Play"], "n": 4, "x": 670, "y": 0}, "u-statusbar": {"name": "Status bar", "kind": "bar", "modes": ["Build", "World", "Population", "Play"], "n": 5, "x": 300, "y": 688}, "u-palette": {"name": "Command palette", "kind": "dialog", "modes": ["all"], "n": 48, "x": 400, "y": 68}, "u-validation": {"name": "Validation Center", "kind": "dialog", "modes": ["all"], "n": 3, "x": 400, "y": 88}, "u-login": {"name": "Login", "kind": "dialog", "modes": ["all"], "n": 32, "x": 440, "y": 58}, "u-feedback": {"name": "Feedback & bug report", "kind": "dialog", "modes": ["all"], "n": 9, "x": 400, "y": 78}, "u-users": {"name": "Users", "kind": "dialog", "modes": ["all"], "n": 5, "x": 460, "y": 108}, "u-clipreview": {"name": "Clip review", "kind": "dialog", "modes": ["all"], "n": 4, "x": 460, "y": 128}, "u-fbinbox": {"name": "Feedback inbox", "kind": "dialog", "modes": ["all"], "n": 1, "x": 460, "y": 148}, "u-tfa": {"name": "Two-factor auth", "kind": "dialog", "modes": ["all"], "n": 1, "x": 480, "y": 168}, "u-endcard": {"name": "End card", "kind": "dialog", "modes": ["all"], "n": 1, "x": 480, "y": 188}, "u-wheel": {"name": "Color wheel", "kind": "dialog", "modes": ["all"], "n": 3, "x": 500, "y": 208}, "u-lens": {"name": "World lens", "kind": "panel", "modes": ["all"], "n": 1, "x": 700, "y": 248}, "u-phonepop": {"name": "Phone popup", "kind": "dialog", "modes": ["all"], "n": 1, "x": 520, "y": 228}, "u-moresheet": {"name": "More sheet", "kind": "sheet", "modes": ["all"], "n": 6, "x": 330, "y": 200}, "u-sky": {"name": "Sky panel", "kind": "panel", "modes": ["all"], "n": 14, "x": 330, "y": 296}, "u-melodydock": {"name": "Melody dock", "kind": "panel", "modes": ["all"], "n": 10, "x": 330, "y": 344}, "u-cam": {"name": "Camera pill panel", "kind": "panel", "modes": ["all"], "n": 9, "x": 700, "y": 200}, "u-worldpill": {"name": "World pill panel", "kind": "panel", "modes": ["all"], "n": 3, "x": 700, "y": 296}, "u-flight": {"name": "Flight panel", "kind": "panel", "modes": ["all"], "n": 7, "x": 700, "y": 344}, "u-panelsheet": {"name": "Panel sheet", "kind": "sheet", "modes": ["all"], "n": 5, "x": 330, "y": 248}, "u-shrine": {"name": "Shrine panel", "kind": "panel", "modes": ["all"], "n": 1, "x": 700, "y": 392}, "u-editpill": {"name": "Edit pill", "kind": "chip", "modes": ["all"], "n": 2, "x": 900, "y": 368}, "u-loose": {"name": "Floating buttons", "kind": "chip", "modes": ["Build", "World", "Population", "Play"], "n": 9, "x": 14, "y": 648}};
@@ -914,6 +958,14 @@ stage.addEventListener('click', e=>{
   }
   const wrap = e.target.closest('.mc-ctl');
   if (wrap && !wrap.hasAttribute('data-nav')){
+    // v3 stage 4 — tapping an already-selected control shows its hint
+    // bubble (the phone equivalent of hovering; re-selecting would be
+    // a no-op anyway). The bubble is sticky: a touch tap ends with a
+    // synthesized mouseout as the emulated mouse "leaves", which would
+    // otherwise hide the bubble 13ms after it shows — so a tap-shown
+    // bubble only goes away on the next pointerdown, a scroll, or a
+    // hover bubble replacing it.
+    if (selectedKey === wrap.dataset.key){ showHint(wrap); hintSticky = true; return; }
     selectControl(wrap.dataset.key);
     return;
   }
@@ -1241,6 +1293,10 @@ document.getElementById('btn-download').addEventListener('click', ()=>{
   });
   const meta = clone.querySelector('meta[name=mockup-build]');
   if (meta) meta.content = 'dl-' + Date.now();
+  // v3 stage 4 — a downloaded clone starts clean: no welcome, tour,
+  // or hint showing, no tour highlight left on anything.
+  clone.querySelectorAll('#welcome-card, #tour-card, #hint-bubble').forEach(el=>{ el.style.display = 'none'; });
+  clone.querySelectorAll('.mc-tour-hl').forEach(el=> el.classList.remove('mc-tour-hl'));
   const src = '<!DOCTYPE html>\n' + clone.outerHTML;
   const blob = new Blob([src], {type:'text/html'});
   const a = document.createElement('a');
@@ -1262,6 +1318,199 @@ document.getElementById('btn-reset').addEventListener('click', ()=>{
 applyMode();
 refreshExpandAllBtn();
 refreshTrays();
+
+// ---------- v3 stage 4 — welcome, tour, hover hints ----------
+// Welcome: shows once per browser (localStorage flag). The card is
+// pointer-events:none except its two buttons and dismisses on any
+// outside pointerdown, so it can never block a drag or a tap.
+// Dismissing by clicking elsewhere does NOT mark it seen — only Skip
+// or View hints does, so a user who brushed past it still gets it
+// next open. The ❓ Tour button re-opens it any time.
+const TOUR_SEEN_KEY = 'crumbs-hud-mockup-tour-seen';
+function tourSeen(){ try{ return localStorage.getItem(TOUR_SEEN_KEY) === '1'; }catch(e){ return false; } }
+function markTourSeen(){ try{ localStorage.setItem(TOUR_SEEN_KEY, '1'); }catch(e){} }
+const welcomeCard = document.getElementById('welcome-card');
+function showWelcome(){ hideHint(); welcomeCard.style.display = 'block'; }
+function hideWelcome(){ welcomeCard.style.display = 'none'; }
+document.getElementById('wc-skip').addEventListener('click', ()=>{ markTourSeen(); hideWelcome(); });
+document.getElementById('wc-view').addEventListener('click', ()=>{ markTourSeen(); hideWelcome(); startTour(); });
+document.getElementById('btn-tour').addEventListener('click', ()=>{ endTour(); showWelcome(); });
+document.addEventListener('pointerdown', e=>{
+  if (welcomeCard.style.display === 'block' && !e.target.closest('#welcome-card')) hideWelcome();
+}, true);
+
+// Tour: seven steps over the harder controls, one short plain
+// sentence each, the step's target wearing a bright tour highlight.
+// Each step's setup runs on every entry (forward or back) so Back
+// restores what the step needs (the editor re-opens, the tray dock
+// comes back). Units the tour opened are folded back on exit, so
+// the tour leaves the layout as it found it.
+let tourIdx = -1; // -1 = not running
+let tourExpanded = [];
+function expandUnitById(uid){
+  const u = document.getElementById(uid);
+  if (u && u.classList.contains('mc-collapsed')){ setCollapsed(u, false); tourExpanded.push(uid); }
+  refreshExpandAllBtn();
+}
+const TOUR_STEPS = [
+  {text: 'Tap any panel header to open it — everything starts folded shut.',
+   target: ()=> document.querySelector('#u-topbar .mc-drag')},
+  {text: 'Grab the ⠿ grip on any control and drag it — onto another panel, or off onto the canvas.',
+   setup: ()=> expandUnitById('u-tray-left'),
+   target: ()=> ctl('tile-edit-save')},
+  {text: 'Tap a control to edit it — change its label, color, or size down here.',
+   setup: ()=> { expandUnitById('u-tray-left'); selectControl('tile-edit-save'); },
+   target: ()=> document.getElementById('editor')},
+  {text: 'No drag? Tap Move to, then tap where it should go — handy on a phone.',
+   setup: ()=> { expandUnitById('u-tray-left'); if (selectedKey !== 'tile-edit-save') selectControl('tile-edit-save'); },
+   target: ()=> document.getElementById('ed-moveto')},
+  {text: 'Every control lives in a tray by kind — pop one out and drag it anywhere.',
+   setup: ()=> deselect(),
+   target: ()=> document.getElementById('tray-dock-head')},
+  {text: '＋ Note drops a sticky note — drag it onto anything to pin it there.',
+   setup: ()=> deselect(),
+   target: ()=> document.getElementById('btn-note')},
+  {text: 'Highlight sets the border color — press or drag anything and it glows brighter.',
+   setup: ()=> deselect(),
+   target: ()=> document.querySelector('.ch-lab')},
+];
+const tourCard = document.getElementById('tour-card');
+const tourText = document.getElementById('tour-text');
+const tourLabel = document.getElementById('tour-step-label');
+const tourBack = document.getElementById('tour-back');
+const tourNext = document.getElementById('tour-next');
+function clearTourHl(){ $$('.mc-tour-hl').forEach(el=> el.classList.remove('mc-tour-hl')); }
+function showTourStep(i){
+  tourIdx = i;
+  const st = TOUR_STEPS[i];
+  clearTourHl();
+  if (st.setup) st.setup();
+  const t = st.target();
+  if (t){
+    t.classList.add('mc-tour-hl');
+    const r = t.getBoundingClientRect();
+    if (r.bottom > innerHeight || r.right > innerWidth || r.top < 0 || r.left < 0)
+      t.scrollIntoView({block:'nearest', inline:'nearest'});
+  }
+  tourLabel.textContent = (i + 1) + ' of ' + TOUR_STEPS.length;
+  tourText.textContent = st.text;
+  tourBack.disabled = (i === 0);
+  tourNext.textContent = (i === TOUR_STEPS.length - 1) ? 'Done ✓' : 'Next ›';
+  tourCard.style.display = 'block';
+}
+function startTour(){ hideHint(); hideWelcome(); tourExpanded = []; showTourStep(0); }
+function endTour(){
+  if (tourIdx < 0) return;
+  tourIdx = -1;
+  clearTourHl();
+  tourCard.style.display = 'none';
+  tourExpanded.forEach(uid=>{ const u = document.getElementById(uid); if (u) setCollapsed(u, true); });
+  tourExpanded = [];
+  refreshExpandAllBtn();
+  deselect();
+}
+tourBack.addEventListener('click', ()=>{ if (tourIdx > 0) showTourStep(tourIdx - 1); });
+tourNext.addEventListener('click', ()=>{ if (tourIdx >= TOUR_STEPS.length - 1) endTour(); else showTourStep(tourIdx + 1); });
+document.getElementById('tour-close').addEventListener('click', ()=> endTour());
+
+// Hover hints: after a still hover (800ms), a small bubble names the
+// thing under the pointer and says which side it belongs to —
+// Jigsaw's own controls (chrome, trays, editor, notes) vs the game's
+// controls (the panels and buttons of the page itself). Never shows
+// while a button is held, while the tour or the welcome is up, or
+// while a move is armed. The bubble is pointer-events:none, so it
+// can never swallow a click. On phones (no hover), tapping an
+// already-selected control shows the same bubble (stage click
+// handler above).
+const JIGSAW_HINTS = {
+  'btn-showall': "Show every panel, whatever mode you're in.",
+  'btn-expandall': 'Open all the panels at once — or fold them all shut.',
+  'btn-note': 'Drop a sticky note you can pin to anything.',
+  'hl-color': 'Pick the color of the border around everything you can move.',
+  'btn-copy': 'Copy a link with your layout baked in.',
+  'btn-download': 'Download this page with your layout saved in it.',
+  'btn-reset': 'Put everything back where it started.',
+  'btn-tour': 'Take the tour again, or see the welcome.',
+  'tray-dock-head': 'Every control on the page, sorted into trays by kind.',
+  'dl-head': 'The panels and dialogs tucked underneath — tap to open one.',
+  'dlg-launcher': 'The panels and dialogs tucked underneath — tap to open one.',
+  'editor': 'Edit the selected control: label, color, size, or move it.',
+};
+const hintBubble = document.getElementById('hint-bubble');
+const hintKind = document.getElementById('hint-kind');
+const hintText = document.getElementById('hint-text');
+let hintTimer = null, hintTarget = null, hintSticky = false;
+function hintFor(el){
+  const note = el.closest('.mc-note');
+  if (note) return {kind:'Jigsaw', text:'Your sticky note. Drag it onto anything to pin it there, or drag it off to float it free.'};
+  const w = el.closest('.mc-ctl');
+  if (w){
+    const lab = (labelEl(w) ? labelEl(w).textContent : '').trim() || (w.dataset.cid || w.dataset.key);
+    return {kind:'Game', text:'“' + lab + '” — one of the game’s own controls. Drag its ⠿ grip to move it; tap it to edit it.'};
+  }
+  const unit = el.closest('.mc-unit');
+  if (unit){
+    const name = (UNITS[unit.id] && UNITS[unit.id].name) || unit.id;
+    return {kind:'Game', text:'“' + name + '” — one of the game’s panels. Tap its header to open it; drag the header to move the whole panel.'};
+  }
+  const trayItem = el.closest('.mc-ctray-item');
+  if (trayItem) return {kind:'Jigsaw', text:'Tap to pop this control out of its tray.'};
+  const trayHead = el.closest('.mc-ctray-head');
+  if (trayHead){
+    const nm = trayHead.querySelector('.mc-ctray-name');
+    return {kind:'Jigsaw', text:'The ' + (nm ? nm.textContent : 'tray') + ' tray — open it, tap something, and it pops out onto the canvas.'};
+  }
+  const modeBtn = el.closest('[data-modebtn]');
+  if (modeBtn) return {kind:'Jigsaw', text:'Show only the panels for this mode.'};
+  const jw = el.closest('#chrome .ch-btn, #chrome .ch-lab, #tray-dock-head, #dlg-launcher, #editor');
+  if (jw){
+    const key = jw.id || (jw.closest('label') && jw.closest('label').querySelector('#hl-color') ? 'hl-color' : '');
+    const msg = JIGSAW_HINTS[key] || JIGSAW_HINTS[jw.id];
+    if (msg) return {kind:'Jigsaw', text:msg};
+  }
+  return null;
+}
+function showHint(el){
+  const h = hintFor(el);
+  if (!h) return;
+  hintSticky = false; // a hover-shown bubble is not sticky; the tap
+  // path sets hintSticky = true after calling this
+  hintKind.textContent = h.kind;
+  hintKind.className = 'hb-kind ' + (h.kind === 'Jigsaw' ? 'jigsaw' : 'game');
+  hintText.textContent = h.text;
+  hintBubble.style.display = 'block';
+  const r = el.getBoundingClientRect();
+  const bw = hintBubble.offsetWidth, bh = hintBubble.offsetHeight;
+  const x = Math.max(8, Math.min(innerWidth - bw - 8, r.left));
+  let y = r.bottom + 8;
+  if (y + bh > innerHeight - 8) y = Math.max(8, r.top - bh - 8);
+  hintBubble.style.left = x + 'px';
+  hintBubble.style.top = y + 'px';
+  hintTarget = el;
+}
+function hideHint(){
+  hintBubble.style.display = 'none';
+  hintTarget = null;
+  hintSticky = false;
+  if (hintTimer){ clearTimeout(hintTimer); hintTimer = null; }
+}
+document.addEventListener('mouseover', e=>{
+  if (e.buttons !== 0 || tourIdx >= 0 || welcomeCard.style.display === 'block' || moveArmed){ hideHint(); return; }
+  const t = e.target.closest('.mc-note, .mc-ctl, .mc-unit, #chrome .ch-btn, #chrome .ch-lab, #tray-dock-head, .mc-ctray-head, .mc-ctray-item, #dlg-launcher, #editor');
+  if (!t){ if (!hintSticky) hideHint(); return; }
+  if (t === hintTarget) return;
+  if (hintTimer) clearTimeout(hintTimer);
+  hintTimer = setTimeout(()=> showHint(t), 800);
+});
+document.addEventListener('mouseout', e=>{
+  if (hintTimer){ clearTimeout(hintTimer); hintTimer = null; }
+  if (hintTarget && !hintSticky && !hintTarget.contains(e.relatedTarget)) hideHint();
+});
+document.addEventListener('pointerdown', ()=> hideHint(), true);
+document.addEventListener('scroll', ()=> hideHint(), true);
+
+// first open: the welcome tooltip (only when the seen flag is absent)
+if (!tourSeen()) showWelcome();
 
 </script>
 </body>
