@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="mockup-build" content="b1794884939">
+<meta name="mockup-build" content="b1794885773">
 <title>Crumbs World — HUD mockup (all 555 controls)</title>
 <style>
 :root{--bg:#1b1430;--panel:#241d3d;--panel2:#2d2450;--line:#4a3f75;--ink:#f2eefc;--dim:#b9aee0;--acc:#ffb347;--acc2:#7fe3ff}
@@ -47,6 +47,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
 .mc-ctl>.mc-grip{cursor:grab;touch-action:none;user-select:none;color:var(--dim);font-size:13px;line-height:1;padding:8px 2px;flex:none}
 .mc-ctl>.mc-grip:active{cursor:grabbing}
 .mc-ctl.mc-selected{outline:2px solid var(--acc);outline-offset:2px}
+.mc-ctl.mc-drop-hl{outline:2px dashed var(--acc2);outline-offset:2px}
 .mc-ctl.mc-dragging{opacity:.88;box-shadow:0 14px 34px rgba(0,0,0,.55);z-index:5000}
 .mc-free{position:absolute;background:rgba(36,29,61,.97);border:1px solid var(--line);border-radius:10px;padding:4px 6px;box-shadow:0 8px 24px rgba(0,0,0,.45);z-index:80}
 .mc-sz-s{font-size:10px}
@@ -95,6 +96,17 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
 #dlg-launcher.mc-drop-hl{outline:2px dashed var(--acc2);outline-offset:2px}
 #tether-svg{position:fixed;inset:0;z-index:4999;pointer-events:none}
 #tether-line{stroke:var(--acc2);stroke-width:2;stroke-dasharray:6 4;display:none}
+.mc-note{position:absolute;width:180px;background:#fff9c4;border:1px solid #d4b800;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.45);z-index:150;color:#333;font-size:13px}
+.mc-note.mc-dragging{opacity:.9;box-shadow:0 14px 34px rgba(0,0,0,.55);z-index:5000}
+.mc-note.mc-armed{outline:2px dashed var(--acc2);outline-offset:2px}
+.mc-note-head{display:flex;align-items:center;gap:4px;padding:4px 6px;cursor:default;user-select:none;background:#ffef8a;border-bottom:1px solid #d4b800;border-radius:10px 10px 0 0}
+.mc-note-grip{cursor:grab;touch-action:none;color:#8a7a00;font-size:13px;line-height:1;padding:2px}
+.mc-note-grip:active{cursor:grabbing}
+.mc-note-title{font-weight:700;font-size:11px;color:#8a7a00;flex:1;text-transform:uppercase;letter-spacing:.5px}
+.mc-note-undock,.mc-note-del{background:none;border:1px solid #d4b800;color:#8a7a00;border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:12px;line-height:1;padding:0}
+.mc-note-undock{display:none}
+.mc-note.mc-docked .mc-note-undock{display:inline-block}
+.mc-note-ta{display:block;width:100%;min-height:52px;background:transparent;border:none;color:#333;font:13px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:6px 8px;resize:vertical;outline:none}
 #editor{position:fixed;left:0;right:0;bottom:0;z-index:9997;background:rgba(12,8,26,.97);border-top:2px solid var(--acc);padding:10px;display:none;flex-wrap:wrap;gap:10px;align-items:center}
 #editor.open{display:flex}
 #editor .ed-id{font-family:ui-monospace,monospace;font-size:12px;color:var(--dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -131,10 +143,11 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
   <button type="button" class="ch-btn" data-modebtn="Play">▶Play</button>
   <button type="button" class="ch-btn on" id="btn-showall">Show all</button>
   <button type="button" class="ch-btn" id="btn-expandall">Expand all ▾</button>
+  <button type="button" class="ch-btn" id="btn-note">＋ Note</button>
   <button type="button" class="ch-btn" id="btn-copy">📋 Copy layout link</button>
   <button type="button" class="ch-btn" id="btn-download">⬇ Download adjusted file</button>
   <button type="button" class="ch-btn" id="btn-reset">↩ Reset layout</button>
-  <span class="hint">Panels start collapsed — tap a panel header to open it, or Expand all. Tap a control to edit its label, color, and size. Drag the ⠿ grip to move it — onto another panel, into a section, or off onto the canvas. Object trays (bottom-right) hold every control by kind — pop one out and drag it anywhere. The link updates as you drag.</span>
+  <span class="hint">Panels start collapsed — tap a panel header to open it, or Expand all. Tap a control to edit its label, color, and size. Drag the ⠿ grip to move it — onto another panel, into a section, or off onto the canvas. Object trays (bottom-right) hold every control by kind — pop one out and drag it anywhere. ＋ Note adds a sticky note — drag it onto a control or panel to dock it, drag it off to float free. The link updates as you drag.</span>
 </div>
 <div id="tray-dock" class="mc-collapsed"><div id="tray-dock-body"><div class="mc-ctray" data-cat="panels-dialogs"><div class="mc-ctray-head"><span class="mc-ctray-name">Panels &amp; dialogs</span><span class="mc-ctray-count">153</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div><div class="mc-ctray" data-cat="trays"><div class="mc-ctray-head"><span class="mc-ctray-name">Trays</span><span class="mc-ctray-count">177</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div><div class="mc-ctray" data-cat="sheets"><div class="mc-ctray-head"><span class="mc-ctray-name">Sheets</span><span class="mc-ctray-count">132</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div><div class="mc-ctray" data-cat="menus"><div class="mc-ctray-head"><span class="mc-ctray-name">Menus</span><span class="mc-ctray-count">51</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div><div class="mc-ctray" data-cat="bars"><div class="mc-ctray-head"><span class="mc-ctray-name">Bars</span><span class="mc-ctray-count">25</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div><div class="mc-ctray" data-cat="chips"><div class="mc-ctray-head"><span class="mc-ctray-name">Chips &amp; floats</span><span class="mc-ctray-count">17</span><span class="mc-ctray-chev">▸</span></div><div class="mc-ctray-list"></div></div></div><div id="tray-dock-head">Object trays · <span id="tray-dock-count">555</span> <span id="tray-dock-chev">▸</span></div></div>
 <div id="dlg-launcher" class="mc-collapsed">
@@ -156,7 +169,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
   <button type="button" class="ed-btn" id="ed-reset">↩ Reset control</button>
   <button type="button" class="ed-btn" id="ed-close">✕ Done</button>
 </div>
-<div id="move-banner">Tap a panel or section to move the control there — or tap empty canvas to float it free. <button type="button" id="move-cancel">Cancel</button></div>
+<div id="move-banner"><span id="move-msg">Tap a panel or section to move the control there — or tap empty canvas to float it free.</span> <button type="button" id="move-cancel">Cancel</button></div>
 <div id="toast"></div>
 <svg id="tether-svg" width="100%" height="100%" aria-hidden="true"><line id="tether-line" x1="0" y1="0" x2="0" y2="0" /></svg>
 <script>
@@ -171,6 +184,8 @@ let currentMode = 'Build';
 let showAll = true;
 let selectedKey = null;
 let moveArmed = false;
+let moveNoteId = null; // tap-to-move armed for a note (not a control)
+let noteSeq = 0; // note ids: n1, n2, ...
 const stage = document.getElementById('units');
 // tray helper cache — declared up here (not in the tray section below)
 // because the load IIFE's applyLayout -> refreshTrays reaches it before
@@ -249,9 +264,27 @@ function readLayout(){
   // v3: the expanded-unit set. Omitted when empty; no `e` key (old
   // v1/v2 hashes) means all collapsed.
   const e = expandedUnits().map(el=> el.id.replace(/^u-/,''));
-  const out = {v:3, u, c};
+  const out = {v:4, u, c};
   if (e.length) out.e = e;
+  // v3 stage 2: notes. Each: {i: id, t: text, d: dock target (control
+  // key or unit id, null = free), x, y: left/top in px — relative to
+  // the dock parent when docked, stage coords when free.}
+  const n = $$('.mc-note').map(noteState).filter(Boolean);
+  if (n.length) out.n = n;
   return out;
+}
+function noteState(el){
+  const id = el.dataset.note;
+  if (!id) return null;
+  const ta = el.querySelector('.mc-note-ta');
+  const st = {i: id, t: ta ? ta.value : '',
+              x: Math.round(parseFloat(el.style.left) || 0),
+              y: Math.round(parseFloat(el.style.top) || 0)};
+  const p = el.parentElement;
+  if (p && p.classList.contains('mc-ctl')) st.d = p.dataset.key;
+  else if (p && p.classList.contains('mc-unit')) st.d = p.id;
+  else st.d = null;
+  return st;
 }
 function encodeLayout(){
   return btoa(unescape(encodeURIComponent(JSON.stringify(readLayout())))).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
@@ -264,6 +297,7 @@ function decodeLayout(s){
   }catch(e){ return null; }
 }
 function resetAllToHome(){
+  $$('.mc-note').forEach(n=> n.remove()); // notes are diff-only: applyLayout re-creates them from `n`
   const all = $$('.mc-ctl').map(w=>[w, homeOf(w.dataset.key)]).filter(([w,h])=>!!h);
   all.sort((a,b)=>{
     const x = a[1], y = b[1];
@@ -341,6 +375,9 @@ function applyLayout(o){
     const el = document.getElementById('u-' + id);
     if (el) setCollapsed(el, false);
   }
+  // v3 stage 2: restore notes (resetAllToHome removed them all).
+  // Old hashes have no `n` key -> no notes, nothing to do.
+  for (const ns of (o.n || [])) applyNote(ns);
   refreshExpandAllBtn();
   refreshTrays();
 }
@@ -568,7 +605,7 @@ $$('.mc-drag').forEach(head=>{
     const up = ()=>{
       head.removeEventListener('pointermove', move);
       head.removeEventListener('pointerup', up);
-      if (!moved) toggleCollapsed(unit); // a tap (no drag) toggles the unit
+      if (!moved && !moveArmed) toggleCollapsed(unit); // a tap (no drag) toggles the unit — not while a move is armed (tap-to-move dock must not flip the unit)
       saveLayout(true);
     };
     head.addEventListener('pointermove', move);
@@ -666,6 +703,7 @@ function selectControl(key){
 }
 function deselect(keepEditor){
   selectedKey = null; moveArmed = false;
+  disarmNoteMove();
   $$('.mc-selected').forEach(e=>e.classList.remove('mc-selected'));
   if (!keepEditor){
     editor.classList.remove('open');
@@ -728,11 +766,13 @@ document.getElementById('ed-return').addEventListener('click', ()=>{
 });
 document.getElementById('ed-moveto').addEventListener('click', ()=>{
   moveArmed = true;
+  document.getElementById('move-msg').textContent = 'Tap a panel or section to move the control there — or tap empty canvas to float it free.';
   editor.classList.remove('open'); // get the editor out of the way so every panel is tappable
   document.getElementById('move-banner').style.display = 'block';
 });
 document.getElementById('move-cancel').addEventListener('click', ()=>{
   moveArmed = false;
+  disarmNoteMove();
   document.getElementById('move-banner').style.display = 'none';
   if (selectedKey) selectControl(selectedKey);
 });
@@ -740,6 +780,37 @@ document.getElementById('move-cancel').addEventListener('click', ()=>{
 // tap-to-move + tap-to-select (delegated on the stage)
 stage.addEventListener('click', e=>{
   if (moveArmed){
+    if (moveNoteId){
+      const el = noteEl(moveNoteId);
+      if (!el){
+        moveArmed = false; moveNoteId = null;
+        document.getElementById('move-banner').style.display = 'none';
+        return;
+      }
+      const w = e.target.closest('.mc-ctl');
+      const unit = e.target.closest('.mc-unit');
+      if (w || unit){
+        const t = w || unit;
+        const r = t.getBoundingClientRect();
+        t.appendChild(el);
+        el.classList.add('mc-docked');
+        el.style.left = Math.max(0, Math.round(e.clientX - r.left - 20)) + 'px';
+        el.style.top = Math.max(0, Math.round(e.clientY - r.top - 10)) + 'px';
+        toast('Note docked');
+      } else {
+        const ur = stage.getBoundingClientRect();
+        stage.appendChild(el);
+        el.classList.remove('mc-docked');
+        el.style.left = Math.max(0, Math.round(e.clientX - ur.left - 20)) + 'px';
+        el.style.top = Math.max(0, Math.round(e.clientY - ur.top - 10)) + 'px';
+        toast('Note placed');
+      }
+      moveArmed = false;
+      disarmNoteMove();
+      document.getElementById('move-banner').style.display = 'none';
+      saveLayout(true);
+      return;
+    }
     const w = selectedKey ? ctl(selectedKey) : null;
     if (!w){ moveArmed = false; document.getElementById('move-banner').style.display = 'none'; return; }
     const secBody = e.target.closest('.mc-sec-body');
@@ -888,7 +959,190 @@ $$('.mc-ctl').forEach(w=>{
   });
 });
 
+// ---------- dockable notes (v3 stage 2) ----------
+// A note is a small draggable text box. Free notes are children of
+// #units (stage coords); docked notes are children of a control
+// wrapper (.mc-ctl, position:relative) or a unit section — positioned
+// relative to that object, so they move with it everywhere: drags,
+// pop-outs, tap-to-move, layout apply. No follow-up code needed.
+function noteEl(id){
+  return document.querySelector('.mc-note[data-note="' + CSS.escape(id) + '"]');
+}
+function createNoteEl(id, text){
+  const el = document.createElement('div');
+  el.className = 'mc-note';
+  el.dataset.note = id;
+  el.innerHTML = '<div class="mc-note-head"><span class="mc-note-grip" title="Drag to move — tap to place">⠿</span>'
+    + '<span class="mc-note-title">Note</span>'
+    + '<button type="button" class="mc-note-undock" title="Undock — float free">⇱</button>'
+    + '<button type="button" class="mc-note-del" title="Delete note">✕</button></div>'
+    + '<textarea class="mc-note-ta" placeholder="Note…" rows="2"></textarea>';
+  const ta = el.querySelector('.mc-note-ta');
+  ta.value = text || '';
+  ta.addEventListener('input', ()=> saveLayout(true));
+  ta.addEventListener('change', ()=> saveLayout(true));
+  // A note is its own little world: nothing inside it may select the
+  // control it is docked to, or deselect through the stage handler.
+  el.addEventListener('pointerdown', e=> e.stopPropagation());
+  el.addEventListener('click', e=> e.stopPropagation());
+  el.querySelector('.mc-note-del').addEventListener('click', ()=>{
+    disarmNoteMove();
+    el.remove();
+    saveLayout(true);
+    toast('Note deleted');
+  });
+  el.querySelector('.mc-note-undock').addEventListener('click', ()=> undockNote(el));
+  wireNoteGrip(el);
+  return el;
+}
+let notePopCount = 0;
+function addNote(){
+  noteSeq++;
+  const id = 'n' + noteSeq;
+  const el = createNoteEl(id, '');
+  const ur = stage.getBoundingClientRect();
+  const off = (notePopCount % 6) * 30; notePopCount++;
+  stage.appendChild(el);
+  el.style.left = Math.max(0, Math.round(-ur.left + innerWidth/2 - 90 + off)) + 'px';
+  el.style.top = Math.max(0, Math.round(-ur.top + innerHeight/2 - 120 + off)) + 'px';
+  saveLayout(true);
+  const ta = el.querySelector('.mc-note-ta');
+  if (ta) ta.focus();
+  toast('Note added — type, then drag it onto anything to dock it');
+}
+function applyNote(ns){
+  if (!ns || !ns.i) return;
+  const m = /^n(\d+)$/.exec(ns.i);
+  if (m) noteSeq = Math.max(noteSeq, +m[1]);
+  const el = createNoteEl(ns.i, ns.t || '');
+  if (ns.d){
+    let parent = document.getElementById(ns.d);
+    if (!parent || !parent.classList.contains('mc-unit')) parent = ctl(ns.d);
+    if (parent){
+      parent.appendChild(el);
+      el.classList.add('mc-docked');
+      el.style.left = (ns.x || 0) + 'px';
+      el.style.top = (ns.y || 0) + 'px';
+      return;
+    }
+    // dock target vanished (shouldn't happen) — fall through to free
+  }
+  stage.appendChild(el);
+  el.style.left = (ns.x || 0) + 'px';
+  el.style.top = (ns.y || 0) + 'px';
+}
+function undockNote(el){
+  const r = el.getBoundingClientRect();
+  const ur = stage.getBoundingClientRect();
+  stage.appendChild(el);
+  el.classList.remove('mc-docked');
+  el.style.left = Math.max(0, Math.round(r.left - ur.left)) + 'px';
+  el.style.top = Math.max(0, Math.round(r.top - ur.top)) + 'px';
+  saveLayout(true);
+  toast('Note undocked — floating free');
+}
+function noteDropTargetAt(x, y, dragged){
+  const els = document.elementsFromPoint(x, y);
+  for (const el of els){
+    if (dragged && (el === dragged || dragged.contains(el))) continue;
+    if (el.closest('#chrome, #editor, #toast, #move-banner, #tray-dock, #dlg-launcher')) return {kind:'cancel'};
+    const w = el.closest('.mc-ctl');
+    if (w) return {kind:'control', el:w};
+    // a collapsed unit IS a dock target for notes (the note hangs off
+    // the unit element itself, not the hidden body)
+    const unit = el.closest('.mc-unit');
+    if (unit) return {kind:'unit', el:unit};
+    if (el.id === 'units' || el.id === 'stage') return {kind:'free'};
+  }
+  return {kind:'free'};
+}
+function highlightNoteDrop(x, y, dragged){
+  clearDropHl();
+  const t = noteDropTargetAt(x, y, dragged);
+  if (t && (t.kind === 'control' || t.kind === 'unit')) t.el.classList.add('mc-drop-hl');
+}
+function dropNote(el, x, y){
+  const t = noteDropTargetAt(x, y, el);
+  if (!t || t.kind === 'cancel') return; // stays where it was
+  if (t.kind === 'control' || t.kind === 'unit'){
+    const r = t.el.getBoundingClientRect();
+    t.el.appendChild(el);
+    el.classList.add('mc-docked');
+    el.style.left = Math.max(0, Math.round(x - r.left - 20)) + 'px';
+    el.style.top = Math.max(0, Math.round(y - r.top - 10)) + 'px';
+    toast('Note docked');
+    return;
+  }
+  const ur = stage.getBoundingClientRect();
+  stage.appendChild(el);
+  el.classList.remove('mc-docked');
+  el.style.left = Math.max(0, Math.round(x - ur.left - 20)) + 'px';
+  el.style.top = Math.max(0, Math.round(y - ur.top - 10)) + 'px';
+}
+function armNoteMove(id){
+  deselect();
+  moveArmed = true;
+  moveNoteId = id;
+  $$('.mc-note.mc-armed').forEach(n=> n.classList.remove('mc-armed'));
+  const el = noteEl(id);
+  if (el) el.classList.add('mc-armed');
+  document.getElementById('move-msg').textContent = 'Tap a control or panel to dock the note — or tap empty canvas to place it free.';
+  document.getElementById('move-banner').style.display = 'block';
+}
+function disarmNoteMove(){
+  moveNoteId = null;
+  $$('.mc-note.mc-armed').forEach(n=> n.classList.remove('mc-armed'));
+}
+// NOTE: same lift pattern as control drag — the note stays in the DOM
+// and is only lifted visually with position:fixed, or the pointer
+// capture stream breaks.
+function wireNoteGrip(el){
+  const grip = el.querySelector(':scope > .mc-note-head > .mc-note-grip');
+  grip.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX, startY = e.clientY;
+    let dragging = false, finished = false;
+    const rect = el.getBoundingClientRect();
+    const dx = startX - rect.left, dy = startY - rect.top;
+    try{ grip.setPointerCapture(e.pointerId); }catch(err){}
+    const move = ev=>{
+      if (finished) return;
+      if (!dragging && Math.hypot(ev.clientX-startX, ev.clientY-startY) < 6) return;
+      if (!dragging){
+        dragging = true;
+        el.classList.add('mc-dragging');
+        el.style.position = 'fixed';
+        el.style.zIndex = 5000;
+      }
+      el.style.left = (ev.clientX - dx) + 'px';
+      el.style.top = (ev.clientY - dy) + 'px';
+      highlightNoteDrop(ev.clientX, ev.clientY, el);
+    };
+    const up = ev=>{
+      if (finished) return;
+      finished = true;
+      grip.removeEventListener('pointermove', move);
+      grip.removeEventListener('pointerup', up);
+      grip.removeEventListener('pointercancel', up);
+      window.removeEventListener('pointerup', up, true);
+      clearDropHl();
+      if (!dragging){ armNoteMove(el.dataset.note); return; } // tap = arm tap-to-move
+      el.style.position = ''; el.style.left = ''; el.style.top = '';
+      el.style.zIndex = '';
+      el.classList.remove('mc-dragging');
+      dropNote(el, ev.clientX, ev.clientY);
+      saveLayout(true);
+    };
+    grip.addEventListener('pointermove', move);
+    grip.addEventListener('pointerup', up);
+    grip.addEventListener('pointercancel', up);
+    window.addEventListener('pointerup', up, true);
+  });
+}
+
 // ---------- chrome buttons ----------
+document.getElementById('btn-note').addEventListener('click', ()=> addNote());
 document.getElementById('btn-copy').addEventListener('click', async ()=>{
   saveLayout(true);
   const url = location.href;
