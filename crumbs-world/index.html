@@ -101,6 +101,10 @@
   }
   .login input:focus { outline: none; border-color: var(--gold); }
   .login .btn-gold { display: block; text-align: center; padding: 0.7rem 1rem; margin-top: 1.1rem; width: 100%; }
+  .login button.btn-gold { font-family: inherit; font-size: 0.95rem; cursor: pointer; }
+  .login button.btn-gold:disabled { opacity: 0.6; cursor: default; }
+  .login .fd-err { color: #e07856; font-size: 0.85rem; text-align: center; margin-top: 0.8rem; min-height: 1.2em; }
+  .login .fd-2fa { margin-top: 0.4rem; }
   .login .create { text-align: center; margin-top: 0.9rem; font-size: 0.9rem; color: var(--muted); }
   .login .note { text-align: center; margin-top: 0.6rem; font-size: 0.78rem; color: #8d8271; }
 
@@ -175,21 +179,29 @@
   <h1>CRUMBS WORLD</h1>
   <div class="emblem">&#128009;</div>
   <p class="tagline">A vault dungeon adventure</p>
-  <a class="btn-gold" href="play/">Play</a>
+  <a class="btn-gold" href="#login">Play</a>
   <p class="tagline" style="margin-top:1rem; font-size:0.92rem;">The vault is open. Step inside and play.</p>
 </header>
 
 <main>
   <!-- Login, left -->
-  <section class="panel login" aria-label="Welcome back">
+  <section class="panel login" id="login" aria-label="Welcome back">
     <h2>Welcome back</h2>
-    <label for="username">Username</label>
-    <input id="username" type="text" placeholder="your username" autocomplete="username">
-    <label for="password">Password</label>
-    <input id="password" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password">
-    <a class="btn-gold" href="play/">Log In</a>
-    <p class="create">No account? <a href="play/">Create account</a></p>
-    <p class="note">Sign-in happens on the game&rsquo;s own login screen.</p>
+    <form id="frontdoor-login" autocomplete="on">
+      <label for="username">Username</label>
+      <input id="username" type="text" placeholder="your username" autocomplete="username">
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password">
+      <button type="submit" class="btn-gold" id="fd-login-btn">Log In</button>
+    </form>
+    <div class="fd-err" id="fd-err" aria-live="polite"></div>
+    <div class="fd-2fa" id="fd-2fa" hidden>
+      <label for="fd-2fa-code">Authenticator code</label>
+      <input id="fd-2fa-code" type="text" inputmode="text" autocomplete="one-time-code" placeholder="123456" maxlength="12">
+      <button type="button" class="btn-gold" id="fd-2fa-btn">Verify</button>
+    </div>
+    <p class="create">No account? <a href="#login">Create account</a></p>
+    <p class="note">You log in here and land straight in the game. New here? Create your account on the <a id="fd-signup-link" href="#">game&rsquo;s login screen</a>.</p>
   </section>
 
   <!-- Adventurers, center -->
@@ -249,6 +261,90 @@
   <p>Built for adventurers. Explore the vault. Stay curious.</p>
   <p>On your phone? Try the <a href="https://crumbsworld.univer.se/">mobile front door</a>.</p>
 </footer>
+
+<script>
+// ---- Front-door login (LIVE) ----
+// LIVE: GAME_API / GAME_URL point at the live game server over the
+// Tailscale Funnel origin (https://harley.tail1044f8.ts.net). The live
+// server has the token endpoints (verified 2026-11-18: token/issue +
+// token/login live in crumbs_hud.py, token redeem live in editor.html).
+// The token rides in the URL fragment (#token=...) so it never reaches the
+// server's logs; the game client strips it the moment the page loads.
+const GAME_API = "https://harley.tail1044f8.ts.net";
+const GAME_URL = "https://harley.tail1044f8.ts.net";
+
+(function () {
+  const form = document.getElementById("frontdoor-login");
+  const userEl = document.getElementById("username");
+  const passEl = document.getElementById("password");
+  const errEl = document.getElementById("fd-err");
+  const btn = document.getElementById("fd-login-btn");
+  const twofaEl = document.getElementById("fd-2fa");
+  const codeEl = document.getElementById("fd-2fa-code");
+  const signupLink = document.getElementById("fd-signup-link");
+  if (signupLink) signupLink.href = GAME_URL;
+  let challenge = null;
+  let busy = false;
+
+  function showErr(msg) { errEl.textContent = msg || ""; }
+
+  async function post(path, body) {
+    const r = await fetch(GAME_API + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    return r.json();
+  }
+
+  function goToGame(token) {
+    window.location.href = GAME_URL + "/#token=" + encodeURIComponent(token);
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    const u = userEl.value.trim().toLowerCase();
+    const p = passEl.value;
+    if (!u || !p) { showErr("enter a username and password"); return; }
+    busy = true; btn.disabled = true; showErr("");
+    try {
+      const r = await post("/api/auth/token/issue", { username: u, password: p });
+      if (r.ok && r.token) { goToGame(r.token); return; }
+      if (r.need_2fa) {
+        challenge = r.challenge;
+        twofaEl.hidden = false;
+        showErr("two-factor check — enter the code from your authenticator app");
+        codeEl.value = "";
+        codeEl.focus();
+        return;
+      }
+      if (r.retry_after) { showErr("slow down — try again in " + r.retry_after + " seconds"); return; }
+      showErr((r.error || "login failed") + (r.hint ? " — " + r.hint : ""));
+    } catch (err) {
+      showErr("can't reach the game server — is it up?");
+    } finally {
+      busy = false; btn.disabled = false;
+    }
+  });
+
+  document.getElementById("fd-2fa-btn").addEventListener("click", async () => {
+    const code = codeEl.value.trim();
+    if (!code || !challenge) { showErr("enter the 6-digit code"); return; }
+    if (busy) return;
+    busy = true; showErr("");
+    try {
+      const r = await post("/api/auth/token/issue-2fa", { challenge: challenge, code: code });
+      if (r.ok && r.token) { goToGame(r.token); return; }
+      showErr(r.error || "that code didn't work");
+    } catch (err) {
+      showErr("can't reach the game server — is it up?");
+    } finally {
+      busy = false;
+    }
+  });
+})();
+</script>
 
 </body>
 </html>
