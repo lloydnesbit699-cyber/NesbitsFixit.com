@@ -300,12 +300,40 @@ const GAME_URL = "https://harley.tail1044f8.ts.net";
   function showErr(msg) { errEl.textContent = msg || ""; }
 
   async function post(path, body) {
-    const r = await fetch(GAME_API + path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    return r.json();
+    // Auth break-test: 15s timeout — a hung response used to sit forever
+    // with the button disabled and no error (Gene's login "just sat
+    // there"). A timeout is a distinct error so the caller can say so.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    let r;
+    try {
+      r = await fetch(GAME_API + path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: ctrl.signal
+      });
+    } catch (e) {
+      clearTimeout(timer);
+      if (e && e.name === "AbortError") {
+        const err = new Error("the game server is taking too long to answer");
+        err.timeout = true;
+        throw err;
+      }
+      throw e;
+    }
+    clearTimeout(timer);
+    // A non-JSON reply means the server DID answer (a proxy error page,
+    // a 502) — not a dead server. Say so instead of "can't reach".
+    let j;
+    try {
+      j = await r.json();
+    } catch (e) {
+      const err = new Error("the game server answered with an error");
+      err.badResponse = true;
+      throw err;
+    }
+    return j;
   }
 
   function goToGame(token) {
@@ -333,7 +361,9 @@ const GAME_URL = "https://harley.tail1044f8.ts.net";
       if (r.retry_after) { showErr("slow down — try again in " + r.retry_after + " seconds"); return; }
       showErr((r.error || "login failed") + (r.hint ? " — " + r.hint : ""));
     } catch (err) {
-      showErr("can't reach the game server — is it up?");
+      if (err && err.timeout) showErr("the game server is taking too long to answer — try again");
+      else if (err && err.badResponse) showErr("the game server answered with an error — try again in a moment");
+      else showErr("can't reach the game server — is it up?");
     } finally {
       busy = false; btn.disabled = false;
     }
@@ -349,7 +379,9 @@ const GAME_URL = "https://harley.tail1044f8.ts.net";
       if (r.ok && r.token) { goToGame(r.token); return; }
       showErr(r.error || "that code didn't work");
     } catch (err) {
-      showErr("can't reach the game server — is it up?");
+      if (err && err.timeout) showErr("the game server is taking too long to answer — try again");
+      else if (err && err.badResponse) showErr("the game server answered with an error — try again in a moment");
+      else showErr("can't reach the game server — is it up?");
     } finally {
       busy = false;
     }
