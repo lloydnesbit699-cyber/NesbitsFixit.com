@@ -201,6 +201,7 @@
       <button type="button" class="btn-gold" id="fd-2fa-btn">Verify</button>
     </div>
     <p class="create">No account? <a href="#login">Create account</a></p>
+    <p class="create"><a id="fd-forgot-user" href="#">Forgot username?</a> &middot; <a id="fd-forgot-pass" href="#">Forgot password?</a></p>
     <p class="note">You log in here and land straight in the game. New here? Create your account on the <a id="fd-signup-link" href="#">game&rsquo;s login screen</a>.</p>
   </section>
 
@@ -283,6 +284,12 @@ const GAME_URL = "https://harley.tail1044f8.ts.net";
   const codeEl = document.getElementById("fd-2fa-code");
   const signupLink = document.getElementById("fd-signup-link");
   if (signupLink) signupLink.href = GAME_URL;
+  // Forgot links are signposts: recovery itself lives on the game's login
+  // screen (the buttons there open the code-based recovery flow).
+  const forgotUser = document.getElementById("fd-forgot-user");
+  if (forgotUser) forgotUser.href = GAME_URL;
+  const forgotPass = document.getElementById("fd-forgot-pass");
+  if (forgotPass) forgotPass.href = GAME_URL;
   let challenge = null;
   let busy = false;
 
