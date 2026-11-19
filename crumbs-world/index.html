@@ -200,7 +200,7 @@
       <input id="fd-2fa-code" type="text" inputmode="text" autocomplete="one-time-code" placeholder="123456" maxlength="12">
       <button type="button" class="btn-gold" id="fd-2fa-btn">Verify</button>
     </div>
-    <p class="create">No account? <a href="#login">Create account</a></p>
+    <p class="create">No account? <a id="fd-create-link" href="#">Create account</a></p>
     <p class="create"><a id="fd-forgot-user" href="#">Forgot username?</a> &middot; <a id="fd-forgot-pass" href="#">Forgot password?</a></p>
     <p class="note">You log in here and land straight in the game. New here? Create your account on the <a id="fd-signup-link" href="#">game&rsquo;s login screen</a>.</p>
   </section>
@@ -290,6 +290,10 @@ const GAME_URL = "https://harley.tail1044f8.ts.net";
   if (forgotUser) forgotUser.href = GAME_URL;
   const forgotPass = document.getElementById("fd-forgot-pass");
   if (forgotPass) forgotPass.href = GAME_URL;
+  // "Create account" used to point at #login (the same page) — it went
+  // nowhere. It now goes to the game's login screen like the signup link.
+  const createLink = document.getElementById("fd-create-link");
+  if (createLink) createLink.href = GAME_URL;
   let challenge = null;
   let busy = false;
 
