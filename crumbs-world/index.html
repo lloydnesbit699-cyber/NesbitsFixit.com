@@ -266,13 +266,13 @@
 <script>
 // ---- Front-door login (LIVE) ----
 // LIVE: GAME_API / GAME_URL point at the live game server over the
-// Tailscale Funnel origin (https://harley.tail1044f8.ts.net). The live
+// Tailscale Funnel origin (https://hestia.tail1044f8.ts.net). The live
 // server has the token endpoints (verified 2026-11-18: token/issue +
 // token/login live in crumbs_hud.py, token redeem live in editor.html).
 // The token rides in the URL fragment (#token=...) so it never reaches the
 // server's logs; the game client strips it the moment the page loads.
-const GAME_API = "https://harley.tail1044f8.ts.net";
-const GAME_URL = "https://harley.tail1044f8.ts.net";
+const GAME_API = "https://hestia.tail1044f8.ts.net";
+const GAME_URL = "https://hestia.tail1044f8.ts.net";
 
 (function () {
   const form = document.getElementById("frontdoor-login");
