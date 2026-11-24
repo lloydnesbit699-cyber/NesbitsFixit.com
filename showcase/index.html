@@ -36,8 +36,8 @@
   }
   .welcome em { color: #e9f1ec; font-style: normal; }
   /* Section headers: the Hugging Face shape — a colored bar over a
-     grid of items. The label carries the meaning; the color is
-     decoration only. */
+     grid of pills, one tap to the thing. Each exhibit is a section.
+     The label carries the meaning; the color is decoration only. */
   .section { margin-bottom: 28px; }
   .section-head {
     font-size: 1.05rem;
@@ -46,12 +46,19 @@
     color: #ffffff;
     padding: 12px 18px;
     border-radius: 14px;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
   .section-head.green { background: linear-gradient(90deg, #1d5c3a, #2e8b57); }
   .section-head.blue { background: linear-gradient(90deg, #1d4e6b, #2b7a9e); }
+  .section-head.pink { background: linear-gradient(90deg, #6b2d4a, #9e4a7a); }
   .section-head.orange { background: linear-gradient(90deg, #7a3d1d, #b06a2e); }
   .section-head.purple { background: linear-gradient(90deg, #4a2d6b, #6e4a9e); }
+  .section-head.slate { background: linear-gradient(90deg, #2a3433, #3d4a48); }
+  .section-desc {
+    color: #93aca3;
+    font-size: .95rem;
+    margin: 0 2px 12px;
+  }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -70,12 +77,6 @@
   .pill:active { transform: scale(.98); }
   .pill b { display: block; font-size: 1.12rem; line-height: 1.25; margin-bottom: 4px; }
   .pill span { display: block; color: #93aca3; font-size: .92rem; }
-  .pill.soon {
-    border-style: dashed;
-    border-color: rgba(147,172,163,.55);
-    cursor: default;
-  }
-  .pill.soon b { color: #93aca3; }
   footer {
     margin-top: 36px;
     padding-top: 22px;
@@ -93,51 +94,75 @@
   <p class="welcome">This is the <em>Crumbs Vault Showcase</em> &mdash; where we&rsquo;re working every day to develop a future filled with entertainment, popcorn, and <em>ooo, look at that!</em></p>
 
   <div class="section">
-    <div class="section-head green">Playable now</div>
+    <div class="section-head green">Living River</div>
+    <p class="section-desc">A living watershed in your browser &mdash; fifteen creatures in five families, seasons and weather, dams and lodges, and a river that grows with the map.</p>
     <div class="grid">
       <a class="pill" href="/showcase/living-river/map-sandbox.html">
-        <b>Living River</b>
-        <span>A living watershed in your browser &mdash; step right up and watch it run.</span>
-      </a>
-      <a class="pill" href="/showcase/velithra/">
-        <b>Veli&rsquo;Thra qo&rsquo;choH</b>
-        <span>Reality, rearranged &mdash; drag, resize, and recolor this page&rsquo;s pieces. Try it live.</span>
+        <b>Play the river</b>
+        <span>Step right up &mdash; the sandbox, live in your browser.</span>
       </a>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-head blue">3D viewers</div>
+    <div class="section-head blue">Dragon Bench</div>
+    <p class="section-desc">Dragons, side by side. Compare the pulls, spin them, see every angle.</p>
     <div class="grid">
       <a class="pill" href="/3d-viewers/dragon-bench.html">
-        <b>Dragon Bench</b>
-        <span>Dragons, side by side. Compare the pulls, spin them, see every angle.</span>
+        <b>Open the bench</b>
+        <span>Dragons 1 &amp; 2, side by side.</span>
       </a>
-      <a class="pill" href="/3d-viewers/aetherion-dragon1-viewer.html">
-        <b>Aetherion</b>
-        <span>The crystal dragon, up close and turning in the light.</span>
+      <a class="pill" href="/3d-viewers/dragon2-viewer.html">
+        <b>Dragon 2 viewer</b>
+        <span>Dragon 2, up close on its own.</span>
       </a>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-head orange">The game</div>
+    <div class="section-head pink">Aetherion</div>
+    <p class="section-desc">The crystal dragon, up close and turning in the light.</p>
+    <div class="grid">
+      <a class="pill" href="/3d-viewers/aetherion-dragon1-viewer.html">
+        <b>Open the viewer</b>
+        <span>The crystal dragon, rigged and turning.</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head orange">Crumbs World</div>
+    <p class="section-desc">The game itself. Step through the front door and play.</p>
     <div class="grid">
       <a class="pill" href="/crumbs-world/">
-        <b>Crumbs World</b>
-        <span>The game itself. Step through the front door and play.</span>
+        <b>Enter the world</b>
+        <span>The front door.</span>
+      </a>
+      <a class="pill" href="/crumbs-world/play/">
+        <b>Play</b>
+        <span>Straight into the game.</span>
       </a>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-head purple">Coming soon</div>
+    <div class="section-head purple">Veli&rsquo;Thra qo&rsquo;choH</div>
+    <p class="section-desc">Reality, rearranged &mdash; reach into any page and move its pieces.</p>
     <div class="grid">
-      <div class="pill soon">
-        <b>More exhibits</b>
-        <span>More exhibits are being built every day.</span>
-      </div>
+      <a class="pill" href="/showcase/velithra/">
+        <b>Try the demo</b>
+        <span>Drag, resize, recolor &mdash; live on the demo page.</span>
+      </a>
+      <a class="pill" href="/velithra/privacy.html">
+        <b>Privacy policy</b>
+        <span>What Veli&rsquo;Thra collects, in plain words.</span>
+      </a>
     </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head slate">Coming soon</div>
+    <p class="section-desc">More exhibits are being built every day.</p>
   </div>
 
   <footer><b>Crumbs Vault Development</b> &middot; Moultrie, GA<br>More exhibits are being built every day.</footer>
