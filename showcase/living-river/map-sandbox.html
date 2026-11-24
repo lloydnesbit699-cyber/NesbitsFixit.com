@@ -1,0 +1,1279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Living River Lab · Map Sandbox</title>
+<style>
+:root{color-scheme:dark;--bg:#071117;--panel:#101d25;--line:#29434f;--ink:#e8f2f4;--muted:#9db3bd;--accent:#79d4c2}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px system-ui, sans-serif}
+header{padding:11px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1{font-size:17px;margin:0}header span{font-size:12px;color:var(--muted)}
+main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;padding:12px;max-width:1600px;margin:auto}
+#stage{height:min(75vh,800px);min-height:440px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#10252b;position:relative}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none}
+#loading{position:absolute;inset:0;display:grid;place-items:center;background:#0b1a20;color:#bfe6df;z-index:3}
+#tags{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
+.tag{position:absolute;transform:translate(-50%,-100%);font:10px ui-monospace,monospace;color:#fff;background:rgba(7,17,23,.72);border:1px solid rgba(121,212,194,.55);border-radius:4px;padding:1px 5px;white-space:nowrap;pointer-events:none}
+.tag.held{border-style:dashed;border-color:#ffd27a;background:rgba(43,32,7,.8)}
+aside{display:flex;flex-direction:column;gap:9px;max-height:80vh;overflow:auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin:0 0 8px}
+.row{display:flex;justify-content:space-between;gap:8px;margin:6px 0;color:var(--muted);font-size:12px}
+.row strong{color:var(--ink);font-variant-numeric:tabular-nums}
+label{display:block;color:var(--muted);font-size:12px;margin:8px 0 3px}
+input[type=range]{width:100%;accent-color:var(--accent)}select,button{background:#1b323d;color:var(--ink);border:1px solid #385560;border-radius:6px;padding:7px;font:inherit}
+input[type=number]{width:100%;background:#1b323d;color:var(--ink);border:1px solid #385560;border-radius:6px;padding:7px;font:inherit}
+button{cursor:pointer}button:hover{border-color:var(--accent)}button.active{background:#28584f;border-color:var(--accent)}button:disabled{opacity:.5;cursor:wait}
+.controls{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.small{font-size:11px;line-height:1.45;color:var(--muted)}
+#log{white-space:pre-wrap;font:10px ui-monospace,monospace;color:#c0d5da;max-height:110px;overflow:auto}
+#benchTable{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+#benchTable td,#benchTable th{border-bottom:1px solid var(--line);padding:3px 4px;text-align:left}
+#benchTable td.num,#benchTable th.num{text-align:right;font-variant-numeric:tabular-nums}
+.ok{color:#8fe3b0}.warn{color:#ffd27a}.bad{color:#ff9a9a}
+@media(max-width:900px){main{grid-template-columns:1fr}aside{max-height:none}#stage{height:58vh;min-height:350px}}
+</style>
+</head>
+<body>
+<header><h1>Living River Lab · Map Sandbox</h1><span id="creatureSummary">15 creatures · 5 families · resizable watershed · seasons &amp; day/night</span><span id="status">● INITIALIZING</span></header>
+<main>
+<section>
+<div id="stage"><div id="loading">Building the river basin and creature rig…</div><div id="tags"></div></div>
+<div class="controls">
+<button id="pause">Pause</button><button id="reset">Reset</button>
+<button id="cinematic" class="active">Cinematic</button><button id="science">Scientific</button><button id="research">Research</button>
+<button id="rain">Rain: off</button><button id="export">Export CSVs</button>
+</div>
+<p class="small">Drag to orbit · scroll to zoom. Creatures in five families share the watershed — a beaver-like land family, fish, birds, bugs and two-legged walkers, each family an adult male, an adult female and a child with its own traits, and every family growing by one member at each bigger map size. The land adults gather sticks and build real dams that raise the water upstream, plus lodges that shelter their rest. Resize the map, reshape the terrain, turn the seasons and watch the day pass — the benchmark measures the largest map this machine holds at 30 and 60 FPS.</p>
+</section>
+<aside>
+<div class="panel"><h2>Environment</h2>
+<label>Precipitation <b id="rainV">0.00</b></label><input id="rainS" type="range" min="0" max="0.8" step=".01" value="0">
+<label>Wind <b id="windV">0.35</b></label><input id="windS" type="range" min="0" max="1.5" step=".01" value=".35">
+<label>Temperature <b id="tempV">18 °C</b></label><input id="tempS" type="range" min="-5" max="38" step=".5" value="18">
+<label>Season <b id="seasonName">Summer</b></label><input id="seasonS" type="range" min="0" max="1" step="0.01" value="0.3">
+<div class="small">0 Spring · 0.25 Summer · 0.5 Autumn · 0.75 Winter. Season sets the temperature baseline, the vegetation colors, ground snow, and whether precipitation falls as rain or snow.</div>
+<div class="row"><span>Time of day</span><strong id="tod">—</strong></div>
+<div class="row"><span>Mean depth</span><strong id="depth">—</strong></div>
+<div class="row"><span>Mean flow speed</span><strong id="speed">—</strong></div>
+<div class="row"><span>Discharge proxy</span><strong id="flow">—</strong></div>
+<div class="row"><span>Surface</span><strong id="surface">—</strong></div>
+<div class="small">Precipitation adds depth — rain in spring, summer and autumn; slow drifting snow in winter, with snow on the ground. Wind sways plants and roughens the water. Heat evaporates depth and dries animals faster. At 0 °C or below the surface freezes — visual only, the solver keeps running. One full day/night cycle is 1 real hour; at night creatures move slower and rest sooner.</div>
+</div>
+<div class="panel"><h2>Map</h2>
+<label>Map size</label><select id="mapSize"><option value="104x72">104 × 72 · current (7,488 cells)</option><option value="156x108">156 × 108 (16,848 cells)</option><option value="208x144">208 × 144 (29,952 cells)</option><option value="312x216">312 × 216 (67,392 cells)</option><option value="416x288">416 × 288 (119,808 cells)</option><option value="520x360">520 × 360 (187,200 cells)</option></select>
+<div class="row"><span>Sim cells</span><strong id="cells">—</strong></div>
+<div class="row"><span>Water vertices</span><strong id="waterVerts">—</strong></div>
+<div class="row"><span>Plants</span><strong id="plantCount">—</strong></div>
+<div class="small">Resizing rebuilds the fields, terrain, water and plants, and restarts the run. Plant count is capped so the benchmark measures the map, not the decoration.</div>
+</div>
+<div class="panel"><h2>Terrain</h2>
+<label>Seed</label><input id="seedIn" type="number" min="1" max="99999" step="1" value="1">
+<div class="controls"><button id="seedRandom">Randomize seed</button><button id="regen">Regenerate terrain</button></div>
+<label>Relief amplitude <b id="ampV">1.0×</b></label><input id="ampS" type="range" min="0.2" max="3" step="0.1" value="1">
+<label>Hill octaves</label><select id="octS"><option value="1">1 · rolling</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option><option value="6">6 · rugged</option></select>
+<label>Mountain / valley bias <b id="biasV">0.0 · neutral</b></label><input id="biasS" type="range" min="-1" max="1" step="0.1" value="0">
+<div class="small">The channel, banks and dry high ground are always kept — seed and shape change the hills, not the watershed. Press Regenerate (or Randomize) to apply.</div>
+</div>
+<div class="panel"><h2 id="creatureTitle">Creatures · 5 families × 3</h2>
+<div class="row"><span>Creatures on map</span><strong id="creatureCount">—</strong></div>
+<div class="row"><span>Beaver A · locomotion</span><strong id="mode">—</strong></div>
+<div class="row"><span>Beaver A · energy</span><strong id="energy">—</strong></div>
+<div class="row"><span>Beaver A · hydration</span><strong id="hydration">—</strong></div>
+<div class="row"><span>Creature identity</span><strong id="cid">—</strong></div>
+<div class="row"><span>River identity</span><strong id="rid">—</strong></div>
+<div class="row"><span>A–B spacing</span><strong id="interaction">—</strong></div>
+<div id="roster" class="small">Loading…</div>
+<label>Goal (Beaver A · male)</label><select id="goal"><option value="wander">Explore riverbank</option><option value="water">Seek water</option><option value="rest">Conserve energy</option><option value="cross">Cross channel</option></select>
+<div class="small">Beaver A builds while exploring (wander goal). Children shadow a parent. M = adult male, F = adult female, C = child — marked by label and size, never color alone. Traits: body scale × · pace p · drain d · hydration h · bold/shy.</div>
+</div>
+<div class="panel"><h2>Building · land adults</h2>
+<div id="buildStatus" class="small">No building yet.</div>
+<div class="small">Dams raise the bed and slow flow through the solver — water ponds upstream. Lodges boost recovery nearby. Regenerating terrain or resizing clears dams and lodges.</div>
+</div>
+<div class="panel"><h2>Performance</h2>
+<div class="row"><span>FPS</span><strong id="fps">—</strong></div>
+<div class="row"><span>Frame time</span><strong id="frameMs">—</strong></div>
+<div class="row"><span>Draw calls</span><strong id="drawCalls">—</strong></div>
+<button id="bench">Run size benchmark</button><button id="benchStop" disabled>Stop benchmark</button>
+<div id="benchOut" class="small">Not run yet — the benchmark steps through every map size for ~10 s each and reports the largest size holding ≥30 and ≥60 FPS on this machine.</div>
+<div id="benchTableWrap"></div>
+</div>
+<div class="panel"><h2>Research ablations</h2>
+<label><input type="checkbox" id="a11"> A11 · Remove skeleton stability</label>
+<label><input type="checkbox" id="a12"> A12 · Remove shape stability</label>
+<label><input type="checkbox" id="a13"> A13 · Remove pressure-gradient force</label>
+<label><input type="checkbox" id="a14"> A14 · Remove body cohesion</label>
+<label><input type="checkbox" id="a15"> A15 · Disable physical translation</label>
+<div class="row"><span>Continuity proxy</span><strong id="continuity">—</strong></div>
+<div class="row"><span>Observer confidence</span><strong id="observer">—</strong></div>
+<button id="batch">Run isolated A11–A15 batch</button>
+<div id="log">Waiting for simulation samples…</div>
+</div>
+<div class="panel"><h2>Model notes</h2><div class="small">Sandbox build of the Living River Lab. The river uses a 2D finite-volume conservative update for depth and horizontal momentum with local Lax–Friedrichs/Rusanov numerical fluxes, bed-slope source terms, rainfall, friction, evaporation, and wet/dry clipping. The visible water surface is a 3D mesh. Map size, terrain shape, weather, season and time of day are live controls; resizing rebuilds the whole world. Creatures in five families share the watershed — the roster grows with the map size — each with its own randomized traits; the land adults build dams that act through the solver. Creature bones are articulated segment meshes driven by a force-based body controller and gait/swim joint targets.</div></div>
+<div class="panel"><h2>Scientific limits</h2><div class="small">This is an executable visual research prototype, not a validated watershed model or species-specific biomechanics model. The solver uses simplified boundary conditions and a reduced 2D horizontal domain; vertical flow is represented visually by surface elevation. Identity and ablation scores are operational proxies, not established biological measurements. The ice state is visual only. Season and day/night effects are simplified visual and behavioral rules, not calibrated phenology or circadian models. Calibrate units, validate conservation and convergence, and compare against reference cases before scientific use.</div></div>
+</aside>
+</main>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {createSandboxAPI, composeStableId, SANDBOX_WORLD_ID} from './sandbox-api.js';
+const $=id=>document.getElementById(id);
+const stage=$('stage');
+let scene,camera,renderer,clock,terrainMesh,waterMesh,waterGeo,waterMat,hemiLight,sunLight,plants=[],flowArrows=[],rainLines,floorMesh,gridHelper;
+const cameraTarget=new THREE.Vector3(0,0,0);
+let NX=104,NY=72;const DX=.42,DT=.018,G=9.81;let NN=NX*NY;
+const at=(x,y)=>y*NX+x,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let bed,H,HU,HV,sed,h2,hu2,hv2;
+function allocFields(){bed=new Float32Array(NN);H=new Float32Array(NN);HU=new Float32Array(NN);HV=new Float32Array(NN);sed=new Float32Array(NN);h2=new Float32Array(NN);hu2=new Float32Array(NN);hv2=new Float32Array(NN);}
+let running=true,elapsed=0,frame=0,rain=0,wind=.35,temp=18,viewMode='cinematic',samples=[],riverSamples=[],identitySamples=[],weatherSamples=[],ablationSamples=[],speciesSamples=[],interactionSamples=[],last={};
+let animal={kind:'beaver',name:'Beaver A',x:18,y:33,vx:0,vy:0,energy:92,hydration:78,heading:0,mode:'walking',identity:.96};
+let companions=[
+ {kind:'beaver',name:'Beaver B',x:25,y:28,vx:0,vy:0,energy:88,hydration:84,heading:0,mode:'walking',identity:.93},
+ {kind:'beaver',name:'Beaver C',x:73,y:46,vx:0,vy:0,energy:96,hydration:91,heading:0,mode:'walking',identity:.95}
+];
+let orbitMin=24,orbitMax=115,fogNear=78,fogFar=190,iceOn=false;
+let fpsAvg=60,benchSamples=[],benchRunning=false,benchCancel=false;
+// Batch 1, Stage 4: the benchmark can be stopped mid-run. waitBench waits
+// in 100 ms slices and returns false as soon as Stop is pressed.
+async function waitBench(ms){let waited=0;while(waited<ms){if(benchCancel)return false;await sleep(100);waited+=100;}return !benchCancel;}
+const SIZE_PRESETS=[[104,72],[156,108],[208,144],[312,216],[416,288],[520,360]];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+// Terrain generation parameters (Stage 3). Same bed/noise approach as v0.4,
+// parameterized: seeded phase offsets + multi-octave value noise + bias.
+let terrainSeed=1,terrainAmp=1,terrainOctaves=3,terrainBias=0,terrainPhases=[0,0,0,0];
+let rng=mulberry32(terrainSeed);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function reseed(s){terrainSeed=s;rng=mulberry32(s);terrainPhases=[rng()*Math.PI*2,rng()*Math.PI*2,rng()*Math.PI*2,rng()*Math.PI*2];}
+function hash2(ix,iy){let h=Math.imul(ix,374761393)+Math.imul(iy,668265263)+Math.imul(terrainSeed,974634211);h=Math.imul(h^h>>>13,1274126177);return((h^h>>>16)>>>0)/4294967296;}
+function vnoise(x,y){let ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy;let sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);let a=hash2(ix,iy),b=hash2(ix+1,iy),c=hash2(ix,iy+1),d=hash2(ix+1,iy+1);return a+(b-a)*sx+(c-a)*sy+(a-b-c+d)*sx*sy;}
+function fbm(x,y,oct){let v=0,amp=.5,f=1,norm=0;for(let o=0;o<oct;o++){v+=amp*vnoise(x*f,y*f);norm+=amp;amp*=.5;f*=2;}return v/norm;}
+// Batch 1, Stage 2: the river grows with the map. riverScale is 1 on the
+// base 104-wide map, so the base map behaves exactly as before; on bigger
+// maps the channel width, bank offset, meander amplitude and plant clear
+// band all scale with map width, keeping the river ~10% of the map.
+let riverScale=1,riverSigma2=55,riverClear=9,bankStart=8;
+function updateRiverParams(){riverScale=NX/104;riverSigma2=55*riverScale*riverScale;riverClear=9*riverScale;bankStart=8*riverScale;}
+const riverX=y=>NX*.52+8*riverScale*Math.sin(y*.095*(72/NY))+3*riverScale*Math.sin(y*.22*(72/NY));
+const idx3=(x,y)=>at(x,y);
+function bedHeight(x,y){
+ let hills=.9*Math.sin(x*.105+terrainPhases[0])*Math.cos(y*.11+terrainPhases[1])+.52*Math.sin((x+y)*.075+terrainPhases[2])+.24*Math.cos(y*.24+terrainPhases[3]);
+ hills+=(fbm(x*.045,y*.045,terrainOctaves)-.5)*1.1;
+ hills*=terrainAmp;
+ let d=Math.abs(x-riverX(y));
+ let bank=Math.max(0,d-bankStart)*.11*(1+terrainBias*.5);
+ let base=.35+hills+bank;
+ if(terrainBias<0)base-=(-terrainBias)*.35*Math.exp(-d*d/riverSigma2);
+ return base;
+}
+function initFields(){
+ for(let y=0;y<NY;y++)for(let x=0;x<NX;x++){let i=at(x,y),d=Math.abs(x-riverX(y));bed[i]=bedHeight(x,y);H[i]=Math.max(.018,.13+.82*Math.exp(-d*d/riverSigma2));HU[i]=H[i]*.55;HV[i]=H[i]*.035*Math.sin(y*.12);sed[i]=.02;}
+}
+function buildTerrain(){
+ let groundGeo=new THREE.PlaneGeometry(NX*DX,NY*DX,NX-1,NY-1);groundGeo.rotateX(-Math.PI/2);
+ let pos=groundGeo.attributes.position;for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){let k=j*NX+i;pos.setY(k,bed[k]);}groundGeo.computeVertexNormals();
+ // Elevation-tinted terrain: low floodplain greens, mid-slope olive, and higher dry ground.
+ let colors=[];for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){let z=bed[at(i,j)],t=clamp((z-.1)/4.8,0,1);let c=new THREE.Color().setHSL(.27-t*.055,.34+t*.12,.29+t*.16);colors.push(c.r,c.g,c.b);}groundGeo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+ if(terrainMesh){scene.remove(terrainMesh);terrainMesh.geometry.dispose();terrainMesh.material.dispose();}
+ let gm=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1});terrainMesh=new THREE.Mesh(groundGeo,gm);terrainMesh.receiveShadow=true;scene.add(terrainMesh);
+}
+function buildWater(){
+ let geo=new THREE.PlaneGeometry(NX*DX,NY*DX,NX-1,NY-1);geo.rotateX(-Math.PI/2);let wp=geo.attributes.position;for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){let k=j*NX+i;wp.setY(k,bed[k]+H[k]+.025);}let waterIndices=new Uint32Array((NX-1)*(NY-1)*6);geo.setIndex(new THREE.BufferAttribute(waterIndices,1));geo.setDrawRange(0,0);geo.computeVertexNormals();
+ if(waterMesh){scene.remove(waterMesh);waterGeo.dispose();}
+ waterGeo=geo;
+ if(!waterMat)waterMat=new THREE.MeshPhysicalMaterial({color:0x26a9bd,transparent:true,opacity:.88,roughness:.16,metalness:.02,clearcoat:.8,clearcoatRoughness:.12,side:THREE.DoubleSide});
+ waterMesh=new THREE.Mesh(waterGeo,waterMat);waterMesh.receiveShadow=true;scene.add(waterMesh);
+}
+function buildGround(){
+ let size=Math.max(420,Math.hypot(NX*DX,NY*DX)*2.4);
+ if(floorMesh){scene.remove(floorMesh);floorMesh.geometry.dispose();floorMesh.material.dispose();}
+ floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(size,size),new THREE.MeshStandardMaterial({color:0x344d36,roughness:1}));floorMesh.rotation.x=-Math.PI/2;floorMesh.position.y=-1.25;scene.add(floorMesh);
+ if(gridHelper){scene.remove(gridHelper);gridHelper.geometry.dispose();gridHelper.material.dispose();}
+ let gs=Math.max(NX,NY)*DX;gridHelper=new THREE.GridHelper(gs,50,0x65817d,0x78918a);gridHelper.position.y=-.63;gridHelper.material.transparent=true;gridHelper.material.opacity=.13;scene.add(gridHelper);
+}
+function fitCamera(){
+ let diag=Math.hypot(NX*DX,NY*DX),dist=diag*.85+18;
+ camera.position.set(0,dist*.62,dist*.78);camera.lookAt(cameraTarget);
+ camera.far=Math.max(320,dist*4);camera.updateProjectionMatrix();
+ fogNear=dist*.9;fogFar=dist*2.6;
+ scene.fog.near=viewMode==='cinematic'?fogNear:fogNear*1.6;scene.fog.far=viewMode==='cinematic'?fogFar:fogFar*1.5;
+ orbitMin=Math.max(18,dist*.25);orbitMax=dist*1.6;
+}
+function initScene(){
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc9d8);scene.fog=new THREE.Fog(0xb4c9bd,78,190);
+ camera=new THREE.PerspectiveCamera(43,stage.clientWidth/stage.clientHeight,.1,320);camera.position.set(0,48,66);camera.lookAt(cameraTarget);
+ renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(stage.clientWidth,stage.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;stage.appendChild(renderer.domElement);
+ scene.add(hemiLight=new THREE.HemisphereLight(0xe6f5ff,0x5b6843,2.2));sunLight=new THREE.DirectionalLight(0xffe2ad,3.1);sunLight.position.set(-24,42,18);sunLight.castShadow=true;scene.add(sunLight);
+ buildTerrain();buildWater();buildGround();
+ makePlants();buildCreatures();
+ buildRain();buildSnow();
+ setupOrbit();fitCamera();
+ $('loading').style.display='none';
+}
+// Plant geometries/materials are shared across rebuilds, so re-planting the
+// map never leaks GPU resources: only the InstancedMeshes are removed and
+// re-added. (Batch 1, Stage 1: static vegetation is instanced — one draw
+// call per geometry/material kind instead of one per plant part. Same
+// shapes, colors and placement as before; creatures stay individual meshes
+// because they animate. Wind sway is reproduced exactly: each plant's
+// group matrix is re-composed per frame from its yaw + the sway angles.)
+const plantMats={trunk:new THREE.MeshStandardMaterial({color:0x59432c,roughness:1}),leaf1:new THREE.MeshStandardMaterial({color:0x286b3e,roughness:1}),leaf2:new THREE.MeshStandardMaterial({color:0x43894a,roughness:1}),leaf3:new THREE.MeshStandardMaterial({color:0x78a653,roughness:1}),shrub:new THREE.MeshStandardMaterial({color:0x477d43,roughness:1}),reed:new THREE.MeshStandardMaterial({color:0x91a94c,roughness:1}),rock:new THREE.MeshStandardMaterial({color:0x817f70,roughness:1}),flower:new THREE.MeshStandardMaterial({color:0xe6c56b,roughness:.8}),pine:new THREE.MeshStandardMaterial({color:0x1e4d2e,roughness:1}),willow:new THREE.MeshStandardMaterial({color:0xa8c686,roughness:1}),cattailStalk:new THREE.MeshStandardMaterial({color:0x5a7a3a,roughness:1}),cattailHead:new THREE.MeshStandardMaterial({color:0x6b4a26,roughness:1}),lily:new THREE.MeshStandardMaterial({color:0x3f8f4f,roughness:.7}),fern:new THREE.MeshStandardMaterial({color:0x2e7d46,roughness:1})};
+const plantGeos={trunk:new THREE.CylinderGeometry(.10,.18,1,7),crown:new THREE.IcosahedronGeometry(1,1),shrub:new THREE.DodecahedronGeometry(.36,1),reed:new THREE.ConeGeometry(.075,1.25,5),rock:new THREE.DodecahedronGeometry(.35,0),flower:new THREE.SphereGeometry(.075,7,6),pineCone:new THREE.ConeGeometry(.9,1.6,7),willowCrown:new THREE.SphereGeometry(.95,9,7),cattailStalk:new THREE.CylinderGeometry(.03,.05,1.6,5),cattailHead:new THREE.CylinderGeometry(.09,.09,.5,6),lilyPad:new THREE.CylinderGeometry(.55,.55,.05,10),fernFrond:new THREE.ConeGeometry(.32,.6,6)};
+let plantMeshes=[],swayMeshes=[];
+function clearPlants(){plantMeshes.forEach(m=>{scene.remove(m);m.dispose();});plantMeshes=[];swayMeshes=[];plants=[];}
+function composeM(px,py,pz,rx,ry,rz,sx,sy,sz){return new THREE.Matrix4().compose(new THREE.Vector3(px,py,pz),new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,rz)),new THREE.Vector3(sx,sy,sz));}
+function makePlants(){
+ clearPlants();
+ const mats=plantMats;
+ const trunkGeo=plantGeos.trunk,crownGeo=plantGeos.crown,shrubGeo=plantGeos.shrub,reedGeo=plantGeos.reed,rockGeo=plantGeos.rock,flowerGeo=plantGeos.flower,pineConeGeo=plantGeos.pineCone,willowGeo=plantGeos.willowCrown,cattailStalkGeo=plantGeos.cattailStalk,cattailHeadGeo=plantGeos.cattailHead,lilyGeo=plantGeos.lilyPad,fernGeo=plantGeos.fernFrond;
+ const buckets={};
+ function addPart(key,geo,mat,base,local,sway,plantIdx){(buckets[key]||(buckets[key]={geo,mat,list:[]})).list.push({base,local,sway,plant:plantIdx});}
+ // Attempts grow with the square root of map area and cap at 2500, so the
+ // benchmark measures the map and solver — not thousands of plant meshes.
+ // (Batch 1, Stage 5: five new foliage kinds join the original four —
+ // pine, willow, fern on land; cattail and lily pad by the water. Land
+ // shares: tree 24%, bush 28%, reed 14%, pine 11%, willow 8%, fern 7%,
+ // rock 8%. Water plants are ~9% of attempts, only near the channel.)
+ let attempts=Math.min(2500,Math.round(980*Math.sqrt(NN/7488)));
+ for(let n=0;n<attempts;n++){
+  let x=Math.random()*NX,y=Math.random()*NY,d=Math.abs(x-riverX(y));
+  if(mapBuildingSpot&&Math.hypot(x-mapBuildingSpot.x,y-mapBuildingSpot.y)<4)continue; // keep the hut's pad clear
+  let waterPlant=Math.random()<.09;
+  if(waterPlant&&d>riverClear*1.6)waterPlant=false;
+  if(!waterPlant&&d<riverClear&&Math.random()<.94)continue;
+  let gi=at(clamp(Math.round(x),0,NX-1),clamp(Math.round(y),0,NY-1)),ground=bed[gi],kind=Math.random(),kindName='';
+  if(waterPlant)kindName=kind<.55?'lily':'cattail';
+  else if(kind<.24)kindName='tree';
+  else if(kind<.52)kindName='bush';
+  else if(kind<.66)kindName='reed';
+  else if(kind<.77)kindName='pine';
+  else if(kind<.85)kindName='willow';
+  else if(kind<.92)kindName='fern';
+  else kindName='rock';
+  let py=kindName==='lily'?bed[gi]+H[gi]+.03:ground+.025;
+  let pos=new THREE.Vector3((x-NX/2)*DX,py,(y-NY/2)*DX),yaw=Math.random()*Math.PI*2,sc=.75+Math.random()*.65;
+  let base=composeM(pos.x,pos.y,pos.z,0,yaw,0,sc,sc,sc);
+  let plantIdx=plants.length;
+  plants.push({mesh:{position:pos},phase:Math.random()*6.28,stiff:.6+Math.random(),kind,kindName,pos,yaw,sc,swayParts:[]});
+  if(kindName==='lily'){addPart('lily',lilyGeo,mats.lily,base,composeM(0,0,0,0,0,0,.7+Math.random()*.6,1,.7+Math.random()*.6),false,plantIdx);if(Math.random()<.3)addPart('flower',flowerGeo,mats.flower,base,composeM(.2,.08,.12,0,0,0,1,1,1),false,plantIdx);}
+  else if(kindName==='cattail'){for(let q=0;q<2;q++){let ox=(Math.random()-.5)*.6;addPart('cattailStalk',cattailStalkGeo,mats.cattailStalk,base,composeM(ox,.8,0,0,0,(Math.random()-.5)*.15,1,1,1),true,plantIdx);addPart('cattailHead',cattailHeadGeo,mats.cattailHead,base,composeM(ox,1.6,0,0,0,(Math.random()-.5)*.15,1,1,1),true,plantIdx);}}
+  else if(kindName==='tree'){let h=2.0+Math.random()*3.4;addPart('trunk',trunkGeo,mats.trunk,base,composeM(0,h*.38,0,0,0,0,1,h*.78,1),false,plantIdx);for(let q=0;q<3;q++){let csc=.72+Math.random()*.48;addPart('crown'+q,crownGeo,q===0?mats.leaf1:q===1?mats.leaf2:mats.leaf3,base,composeM((Math.random()-.5)*.48,h*.72+q*.38,(Math.random()-.5)*.48,0,0,0,csc,csc*(.9+Math.random()*.5),csc),true,plantIdx);}}
+  else if(kindName==='bush'){for(let q=0;q<3;q++){let bsc=.65+Math.random()*.65;addPart('shrub'+q,shrubGeo,q===0?mats.leaf1:q===1?mats.shrub:mats.leaf3,base,composeM((Math.random()-.5)*.45,.28+Math.random()*.18,(Math.random()-.5)*.45,0,0,0,bsc,.55+Math.random()*.5,bsc),true,plantIdx);}}
+  else if(kindName==='reed'){for(let q=0;q<3;q++){addPart('reed',reedGeo,mats.reed,base,composeM((Math.random()-.5)*.5,.55,(Math.random()-.5)*.5,0,0,(Math.random()-.5)*.22,1,1,1),true,plantIdx);}}
+  else if(kindName==='pine'){let h=2.2+Math.random()*2.6;addPart('trunk',trunkGeo,mats.trunk,base,composeM(0,h*.3,0,0,0,0,1,h*.6,1),false,plantIdx);for(let q=0;q<3;q++){let ps=1.15-q*.28;addPart('pineCone',pineConeGeo,mats.pine,base,composeM(0,h*.45+q*.75,0,0,0,0,ps,1,ps),true,plantIdx);}}
+  else if(kindName==='willow'){let h=1.8+Math.random()*1.6;addPart('trunk',trunkGeo,mats.trunk,base,composeM(0,h*.35,0,0,0,0,1,h*.7,1),false,plantIdx);for(let q=0;q<2;q++){let ws=.9+Math.random()*.5;addPart('willow',willowGeo,mats.willow,base,composeM((Math.random()-.5)*.5,h*.8+q*.35,(Math.random()-.5)*.5,0,0,0,ws,.55+Math.random()*.2,ws),true,plantIdx);}}
+  else if(kindName==='fern'){for(let q=0;q<3;q++){let a=q*2.1;addPart('fern',fernGeo,mats.fern,base,composeM(Math.cos(a)*.25,.3,Math.sin(a)*.25,.35*Math.cos(a),0,-.35*Math.sin(a),1,1,1),true,plantIdx);}}
+  else {addPart('rock',rockGeo,mats.rock,base,composeM(0,.16,0,0,0,0,.7+Math.random(),.35+Math.random()*.55,.7+Math.random()),false,plantIdx);if(Math.random()<.45)addPart('flower',flowerGeo,mats.flower,base,composeM(.2,.42,.12,0,0,0,1,1,1),true,plantIdx);}
+ }
+ // One InstancedMesh per bucket. Static parts get their final matrix now;
+ // swaying parts are re-composed every frame by updatePlantSway().
+ for(let key in buckets){
+  let b=buckets[key],im=new THREE.InstancedMesh(b.geo,b.mat,b.list.length);
+  im.castShadow=true;im.frustumCulled=false;
+  let hasSway=false;
+  b.list.forEach((it,i)=>{im.setMatrixAt(i,it.base.clone().multiply(it.local));if(it.sway){hasSway=true;plants[it.plant].swayParts.push({im,idx:i,local:it.local});}});
+  if(hasSway){im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);swayMeshes.push(im);}
+  im.instanceMatrix.needsUpdate=true;scene.add(im);plantMeshes.push(im);
+ }
+}
+const _plantM=new THREE.Matrix4(),_finM=new THREE.Matrix4(),_swayQ=new THREE.Quaternion(),_swayE=new THREE.Euler(),_swayS=new THREE.Vector3();
+function updatePlantSway(){
+ for(let p of plants){
+  if(!p.swayParts.length)continue;
+  _swayE.set(Math.cos(elapsed+p.phase)*wind*.07,p.yaw,Math.sin(elapsed*1.2+p.phase)*wind*.16/p.stiff);
+  _swayQ.setFromEuler(_swayE);_swayS.set(p.sc,p.sc,p.sc);
+  _plantM.compose(p.pos,_swayQ,_swayS);
+  for(let s of p.swayParts){_finM.multiplyMatrices(_plantM,s.local);s.im.setMatrixAt(s.idx,_finM);}
+ }
+ for(let im of swayMeshes)im.instanceMatrix.needsUpdate=true;
+}
+let rainDrops=[];
+function buildRain(){
+ if(rainLines){scene.remove(rainLines);rainLines.geometry.dispose();rainLines.material.dispose();}
+ let count=700,positions=new Float32Array(count*6);
+ rainLines=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xbfe6ff,transparent:true,opacity:.45}));
+ rainLines.geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+ rainLines.visible=false;scene.add(rainLines);
+ rainDrops=[];for(let i=0;i<count;i++)rainDrops.push({x:(Math.random()-.5)*NX*DX,y:Math.random()*30,z:(Math.random()-.5)*NY*DX,s:14+Math.random()*10});
+}
+function updateRain(dt){
+ if(!rainLines)return;
+ rainLines.visible=rain>0&&!isWinter();
+ if(rain<=0||isWinter())return;
+ let pos=rainLines.geometry.attributes.position;
+ for(let i=0;i<rainDrops.length;i++){let d=rainDrops[i];d.y-=d.s*dt;if(d.y<0)d.y=28+Math.random()*6;pos.setXYZ(i*2,d.x,d.y,d.z);pos.setXYZ(i*2+1,d.x,d.y+.55,d.z);}
+ pos.needsUpdate=true;
+}
+function bone(mat,r=.075){let mesh=new THREE.Mesh(new THREE.CylinderGeometry(r,r*.8,1,8),mat);mesh.castShadow=true;return mesh;}
+function setBone(mesh,a,b){let A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A);mesh.position.copy(A.add(B).multiplyScalar(.5));mesh.scale.set(1,d.length(),1);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());}
+function makeBeaverRig(c){
+ let root=new THREE.Group();
+ let fur=new THREE.MeshStandardMaterial({color:variantColor([0x8b7654,0x6b543a,0x9a8a70],c.traits.variant),roughness:.88}),light=new THREE.MeshStandardMaterial({color:variantColor([0xc2ad83,0xa8906a,0xd8cba8],c.traits.variant),roughness:.9}),dark=new THREE.MeshStandardMaterial({color:0x3e3428});
+ let body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.92,5,10),fur);body.rotation.z=Math.PI/2;body.castShadow=true;root.add(body);
+ let head=new THREE.Mesh(new THREE.SphereGeometry(.27,14,10),light);root.add(head);
+ let snout=new THREE.Mesh(new THREE.SphereGeometry(.14,10,8),dark);root.add(snout);
+ let tail=new THREE.Mesh(new THREE.ConeGeometry(.12,.72,8),fur);root.add(tail);
+ let legs=[];for(let side of [-1,1])for(let fore of [-1,1]){let upper=bone(fur,.09),lower=bone(light,.065),foot=new THREE.Mesh(new THREE.SphereGeometry(.11,8,6),dark);root.add(upper,lower,foot);legs.push({side,fore,upper,lower,foot});}
+ root.userData={body,head,snout,tail,legs,variantMats:[[fur,[0x8b7654,0x6b543a,0x9a8a70]],[light,[0xc2ad83,0xa8906a,0xd8cba8]]]};return {root};
+}
+function setupOrbit(){
+ let down=false,lastX=0,lastY=0,dragAnimal=false;
+ renderer.domElement.addEventListener('pointerdown',e=>{down=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
+ renderer.domElement.addEventListener('pointermove',e=>{if(!down)return;let dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;let offset=camera.position.clone().sub(cameraTarget);let sph=new THREE.Spherical().setFromVector3(offset);sph.theta-=dx*.005;sph.phi=clamp(sph.phi+dy*.005,.18,1.42);sph.radius=clamp(sph.radius,orbitMin,orbitMax);camera.position.copy(cameraTarget).add(new THREE.Vector3().setFromSpherical(sph));camera.lookAt(cameraTarget);});
+ renderer.domElement.addEventListener('pointerup',()=>down=false);
+ renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();let off=camera.position.clone().sub(cameraTarget).multiplyScalar(e.deltaY>0?1.08:.92);off.clampLength(orbitMin,orbitMax);camera.position.copy(cameraTarget).add(off);camera.lookAt(cameraTarget);},{passive:false});
+}
+function sample(arr,x,y){return arr[at(clamp(Math.round(x),1,NX-2),clamp(Math.round(y),1,NY-2))];}
+function fluxX(i,j){ // Rusanov flux for U=[h,hu,hv]
+ let k=at(i,j),l=at(i-1,j),r=at(i+1,j);
+ let UL=[H[l],HU[l],HV[l]],UR=[H[k],HU[k],HV[k]];
+ let hL=Math.max(0,UL[0]),hR=Math.max(0,UR[0]),uL=hL>.001?UL[1]/hL:0,uR=hR>.001?UR[1]/hR:0,vL=hL>.001?UL[2]/hL:0,vR=hR>.001?UR[2]/hR:0;
+ let fL=[UL[1],UL[1]*uL+.5*G*hL*hL,UL[1]*vL],fR=[UR[1],UR[1]*uR+.5*G*hR*hR,UR[1]*vR];
+ let a=Math.max(Math.abs(uL)+Math.sqrt(G*hL),Math.abs(uR)+Math.sqrt(G*hR));
+ return fL.map((v,n)=>.5*(v+fR[n])-.5*a*(UR[n]-UL[n]));
+}
+function fluxY(i,j){
+ let k=at(i,j),b=at(i,j-1);let UL=[H[b],HU[b],HV[b]],UR=[H[k],HU[k],HV[k]];
+ let hL=Math.max(0,UL[0]),hR=Math.max(0,UR[0]),uL=hL>.001?UL[1]/hL:0,uR=hR>.001?UR[1]/hR:0,vL=hL>.001?UL[2]/hL:0,vR=hR>.001?UR[2]/hR:0;
+ let fL=[UL[2],UL[1]*vL,UL[2]*vL+.5*G*hL*hL],fR=[UR[2],UR[1]*vR,UR[2]*vR+.5*G*hR*hR];
+ let a=Math.max(Math.abs(vL)+Math.sqrt(G*hL),Math.abs(vR)+Math.sqrt(G*hR));
+ return fL.map((v,n)=>.5*(v+fR[n])-.5*a*(UR[n]-UL[n]));
+}
+function fluidStep(dt){
+ const disablePressure=$('a13').checked,friction=.016,dx=DX;
+ const evap=temp>20?(temp-20)*.00012:0; // depth/s lost to evaporation; 0 at or below 20 C
+ let maxWave=0;for(let k=0;k<NN;k++){let hh=Math.max(H[k],.001);maxWave=Math.max(maxWave,Math.abs(HU[k]/hh)+Math.sqrt(G*hh),Math.abs(HV[k]/hh)+Math.sqrt(G*hh));}
+ let sub=Math.max(1,Math.ceil(dt*maxWave/(.42*dx))),ds=dt/sub;
+ for(let step=0;step<sub;step++){
+  for(let y=1;y<NY-1;y++)for(let x=1;x<NX-1;x++){
+   let k=at(x,y),fxp=fluxX(x+1,y),fxm=fluxX(x,y),fyp=fluxY(x,y+1),fym=fluxY(x,y);
+   let dh=-((fxp[0]-fxm[0])+(fyp[0]-fym[0]))/dx+rain*.018-evap;
+   let dhu=-((fxp[1]-fxm[1])+(fyp[1]-fym[1]))/dx;
+   let dhv=-((fxp[2]-fxm[2])+(fyp[2]-fym[2]))/dx;
+   if(!disablePressure){let bx=(bed[at(x+1,y)]-bed[at(x-1,y)])/(2*dx),by=(bed[at(x,y+1)]-bed[at(x,y-1)])/(2*dx);dhu-=G*H[k]*bx;dhv-=G*H[k]*by;}
+   let hh=Math.max(H[k],.001),u=HU[k]/hh,v=HV[k]/hh,drag=friction/(1+ds*friction*Math.hypot(u,v));
+   h2[k]=clamp(H[k]+ds*dh,.001,2.8);hu2[k]=(HU[k]+ds*dhu)*drag;hv2[k]=(HV[k]+ds*dhv)*drag;
+   if(h2[k]<.012){hu2[k]*=.2;hv2[k]*=.2;}
+   if(damMask&&damMask[k]){hu2[k]*=.5;hv2[k]*=.5;} // dam segments block flow through the solver
+   sed[k]=clamp(sed[k]+ds*(Math.hypot(u,v)*.0007-rain*.0001),0,1);
+  }
+  [H,h2]=[h2,H];[HU,hu2]=[hu2,HU];[HV,hv2]=[hv2,HV];
+  // Reflective banks; open-ish inflow/outflow on upstream/downstream edges.
+  for(let x=0;x<NX;x++){let a=at(x,0),b=at(x,NY-1);H[a]=H[at(x,1)];HU[a]=HU[at(x,1)];HV[a]=HV[at(x,1)];H[b]=H[at(x,NY-2)];HU[b]=HU[at(x,NY-2)];HV[b]=HV[at(x,NY-2)];}
+ }
+}
+// ============ Stages 6+8: creature variation, families, roster ============
+// Five groups x three individuals: 1 adult male, 1 adult female, 1 child.
+// Every individual gets randomized traits, fixed per run (Stage 6).
+// Batch 1, Stage 5: every creature also rolls a visual variant (0/1/2) —
+// three color morphs per family, plus a small per-individual lightness
+// jitter, so families read as varied instead of cloned. No sixth family
+// in batch 1: five families × three variants is the variety step; a new
+// family is a later call.
+function variantColor(hexes,v){let c=new THREE.Color(hexes[v%hexes.length]);c.offsetHSL(0,0,(Math.random()-.5)*.06);return c;}
+// Reset re-rolls traits (including variant), so the coat is re-applied too —
+// otherwise the roster would show the new variant while the creature kept
+// its old colors. Each rig records its variant materials in userData.
+function recolorVariant(c){let vm=c.rig&&c.rig.root.userData.variantMats;if(!vm)return;for(let [mat,hexes] of vm)mat.color.copy(variantColor(hexes,c.traits.variant));}
+function randTraits(){
+ return {scale:.85+Math.random()*.3,pace:.8+Math.random()*.4,drain:.85+Math.random()*.3,hydro:.85+Math.random()*.3,bold:Math.random()<.5?'high':'low',variant:Math.floor(Math.random()*3)};
+}
+function assignTraits(c){
+ c.traits=randTraits();
+ c.scaleEff=c.traits.scale*(c.sex==='child'?.6:1);
+ c.paceEff=c.traits.pace*(c.sex==='child'?.7:1);
+ c.energyMax=c.sex==='child'?70:100;
+}
+const GROUP_DEFS=[
+ {group:'land',label:'Land · beaver-like',names:['Beaver A','Beaver B','Beaver C'],pos:[[.17,.46],[.24,.39],[.70,.64]]},
+ {group:'swim',label:'Swimmers · fish',names:['Fish A','Fish B','Fish C'],pos:[[.52,.30],[.52,.55],[.52,.70]]},
+ {group:'fly',label:'Flyers · birds',names:['Bird A','Bird B','Bird C'],pos:[[.30,.30],[.60,.60],[.45,.75]]},
+ {group:'bug',label:'Bugs · insects',names:['Bug A','Bug B','Bug C'],pos:[[.35,.50],[.55,.35],[.65,.60]]},
+ {group:'humanoid',label:'Humanoid · bipeds',names:['Person A','Person B','Person C'],pos:[[.25,.60],[.30,.65],[.28,.62]]},
+];
+const SEXES=['male','female','child'];
+function makeCritter(group,sex,name,fx,fy){
+ let c={group,sex,name,fx,fy,x:0,y:0,z:0,vx:0,vy:0,vz:0,alt:0,energy:90,energyMax:100,hydration:85,heading:0,mode:'walking',identity:.95,rig:null,parent:null,tx:0,ty:0,flyState:'fly',hopT:0,activity:'',build:null};
+ assignTraits(c);
+ c.energy=Math.min(Math.round(85+Math.random()*11),c.energyMax);
+ return c;
+}
+let creatures=[];
+// Batch 1, Stage 2: the roster grows with the map. Each family has 3
+// members on the base map and gains one member per map-size step:
+// 15, 20, 25, 30, 35, 40 creatures across the six presets. Extra members
+// cycle male/female/child; extra children shadow the family female.
+function familySize(){let i=SIZE_PRESETS.findIndex(p=>p[0]===NX&&p[1]===NY);return 3+(i<0?0:i);}
+const MEMBER_LETTERS='ABCDEFGH';
+function memberSpec(def,i){
+ let sex=SEXES[i%3];
+ let name=i<3?def.names[i]:def.names[0].split(' ')[0]+' '+MEMBER_LETTERS[i];
+ let pos=i<3?def.pos[i]:[clamp(def.pos[0][0]+(Math.random()-.5)*.18,.05,.95),clamp(def.pos[0][1]+(Math.random()-.5)*.18,.05,.95)];
+ return {sex,name,fx:pos[0],fy:pos[1]};
+}
+function familyMembers(group){return creatures.filter(c=>c.group===group);}
+// Batch 1, Stage 3: every creature carries a persistent tag — FAMILY-##,
+// numbered in family order, so BEAVER-01 is always Beaver A. Tags are
+// deterministic across rebuilds and ride along in the CSV exports.
+const TAG_STEMS={land:'BEAVER',swim:'FISH',fly:'BIRD',bug:'BUG',humanoid:'HUMAN'};
+function equipCritter(c){
+ c.rig=c.group==='land'?makeBeaverRig(c):c.group==='swim'?makeFishRig(c):c.group==='fly'?makeBirdRig(c):c.group==='bug'?makeBugRig(c):makeHumanoidRig(c);
+ c.rig.root.scale.setScalar(c.scaleEff);
+ scene.add(c.rig.root);
+ c.tag=TAG_STEMS[c.group]+'-'+String(familyMembers(c.group).indexOf(c)+1).padStart(2,'0');
+ // Step 3.4 (M21): the stable id is assigned at equip and STORED on the
+ // creature — the API reads it, never re-derives it, so the id survives
+ // a tag shift (roster rebuild, mid-family removal, rename). The tag
+ // stays the display label; the id is the key.
+ c.stableId=composeStableId(SANDBOX_WORLD_ID,c.tag);
+ c.tagEl=document.createElement('div');c.tagEl.className='tag';c.tagEl.textContent=c.tag;$('tags').appendChild(c.tagEl);
+ if(c.group==='land'&&c.sex!=='child')initBuild(c);
+}
+function buildCreatures(){
+ creatures.forEach(c=>{if(c.rig)scene.remove(c.rig.root);if(c.tagEl)c.tagEl.remove();});
+ creatures=[];
+ if(!damGroup){damGroup=new THREE.Group();scene.add(damGroup);}
+ // Land trio: the module-level animal + companions.
+ animal.sex='male';animal.group='land';animal.fx=.17;animal.fy=.46;animal.name='Beaver A';
+ companions[0].sex='female';companions[0].group='land';companions[0].fx=.24;companions[0].fy=.39;companions[0].name='Beaver B';
+ companions[1].sex='child';companions[1].group='land';companions[1].fx=.70;companions[1].fy=.64;companions[1].name='Beaver C';
+ [animal,...companions].forEach(c=>{c.z=0;c.vz=0;c.alt=0;c.tx=0;c.ty=0;c.flyState='fly';c.hopT=0;c.activity='';c.build=null;c.parent=null;assignTraits(c);if(c.energy>c.energyMax)c.energy=c.energyMax;});
+ companions[1].parent=companions[0];
+ creatures.push(animal,...companions);
+ let n=familySize();
+ for(let i=3;i<n;i++){let s=memberSpec(GROUP_DEFS[0],i),c=makeCritter('land',s.sex,s.name,s.fx,s.fy);if(s.sex==='child')c.parent=companions[0];creatures.push(c);}
+ for(let g=1;g<GROUP_DEFS.length;g++){
+  let def=GROUP_DEFS[g],fam=[];
+  for(let i=0;i<n;i++){let s=memberSpec(def,i),c=makeCritter(def.group,s.sex,s.name,s.fx,s.fy);fam.push(c);creatures.push(c);}
+  fam.forEach(c=>{if(c.sex==='child')c.parent=fam[1];}); // children shadow the adult female
+ }
+ creatures.forEach(equipCritter);
+ placeCreatures();
+}
+// Resize keeps every existing creature and its traits; only the member
+// count is synced to the new map size (add extras when growing, remove
+// the last-added extras when shrinking — the base trio always stays).
+function syncRoster(){
+ let n=familySize();
+ for(let def of GROUP_DEFS){
+  let fam=familyMembers(def.group);
+  while(fam.length>n){let c=fam.pop();if(c.rig)scene.remove(c.rig.root);if(c.tagEl)c.tagEl.remove();creatures.splice(creatures.indexOf(c),1);}
+  while(fam.length<n){let s=memberSpec(def,fam.length),c=makeCritter(def.group,s.sex,s.name,s.fx,s.fy);if(s.sex==='child')c.parent=fam[1];creatures.push(c);fam.push(c);equipCritter(c);}
+ }
+}
+function resetCreatures(){
+ creatures.forEach(c=>{
+  assignTraits(c);recolorVariant(c);
+  c.energy=Math.min(Math.round(85+Math.random()*11),c.energyMax);
+  c.hydration=85;c.vx=0;c.vy=0;c.vz=0;c.z=0;c.alt=c.group==='fly'?8+Math.random()*4:0;c.heading=0;c.mode='walking';c.activity='';
+  c.recovering=false;c.exhausted=false;c.flyState='fly';c.tx=0;c.ty=0;c.hopT=0;
+  c.held=false; // Step 3.4: a reset rebuilds creature state — holds clear with it.
+  c.rig.root.scale.setScalar(c.scaleEff);
+ });
+ if(sandboxAPI)sandboxAPI._clearHolds(); // Step 3.4: drop the hold registry too.
+ resetBuilding();
+ placeCreatures();
+ creatures.forEach(c=>{if(c.group==='land'&&c.sex!=='child')initBuild(c);});
+}
+// ============ Stage 7: building — dams through the solver + lodges ============
+// A placed dam segment raises the bed and marks dam cells, which the solver
+// reads as extra flow drag — water ponds upstream for real, never visual-only.
+let damGroup=null,damMask=null,buildingEvents=[];
+function allocDamMask(){damMask=new Uint8Array(NN);}
+const DAM_OFFSETS=[-5,-3,-1,1,3,5],DAM_SEGMENTS_MAX=6;
+function damOffset(i){return Math.round(DAM_OFFSETS[i]*riverScale);}
+const damMats={stick:new THREE.MeshStandardMaterial({color:0x6b4e2e,roughness:1}),mud:new THREE.MeshStandardMaterial({color:0x5a4632,roughness:1})};
+const damGeos={stick:new THREE.CylinderGeometry(.05,.05,1.2,5),mound:new THREE.SphereGeometry(.6,10,8),dome:new THREE.SphereGeometry(.9,12,8,0,Math.PI*2,0,Math.PI/2)};
+function initBuild(c){
+ let homeY=Math.round(c.y||NY*.5);
+ let damY=clamp(homeY+Math.round((Math.random()-.5)*20),8,NY-9);
+ let damX=riverX(damY);
+ let side=c.x<damX?-1:1;
+ c.build={state:'idle',sticks:0,timer:0,target:null,segments:[],segIndex:0,damSite:{x:damX,y:damY},lodge:{x:clamp(damX+side*8,3,NX-4),y:clamp(damY+5,3,NY-4),built:false,progress:0,mesh:null}};
+}
+function resetBuilding(){
+ if(damMask)damMask.fill(0);
+ if(damGroup){while(damGroup.children.length)damGroup.remove(damGroup.children[0]);}
+ creatures.forEach(c=>{if(!c.build)return;let b=c.build;b.state='idle';b.sticks=0;b.timer=0;b.target=null;b.segments=[];b.segIndex=0;b.lodge.built=false;b.lodge.progress=0;b.lodge.mesh=null;});
+}
+// ============ Map building experiment (single small hut) ============
+// Lloyd's tap, 2026-11-24 ~03:10: try ONE small building during the
+// build, only if safe. This is the experiment, not the building system:
+// one static hut, levels 2+ only. Level 1 (104x72) gets NO building —
+// Lloyd's hypothesis is the smallest map has no room for one unless
+// vegetation is cut back. Counts per size are decided AFTER the numbers
+// from this single hut (draw calls, footprint, look). The hut is map
+// level, not creature-built: it is NOT in damGroup (resetBuilding must
+// not wipe it) and it is cleared + re-placed on every world rebuild
+// and terrain regen, from the current bed[].
+const hutGeos={walls:new THREE.BoxGeometry(2.0,1.2,1.6),roof:new THREE.ConeGeometry(1.7,1.0,4),door:new THREE.BoxGeometry(.5,.7,.06)};
+const hutMats={wall:new THREE.MeshStandardMaterial({color:0x8a6b42,roughness:1}),roof:new THREE.MeshStandardMaterial({color:0x5a4632,roughness:1}),door:new THREE.MeshStandardMaterial({color:0x3e3428,roughness:1})};
+let mapBuilding=null,mapBuildingSpot=null;
+function pickMapBuildingSpot(){
+ mapBuildingSpot=null;
+ if(NX<=104)return; // level 1: no room (Lloyd's call)
+ let cy=Math.floor(NY*0.5);
+ let cx=Math.round(riverX(cy)+riverClear+5); // east bank, just past the clear band
+ for(let r=0;r<=14;r++){
+  for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+   if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;
+   let x=cx+dx,y=cy+dy;
+   if(x<4||x>NX-5||y<4||y>NY-5)continue;
+   let k=at(x,y);
+   if(H[k]>.05)continue; // dry land only
+   if(Math.abs(x-riverX(y))<riverClear+1)continue; // out of the clear band
+   let b0=bed[k],flat=true;
+   for(let j=-1;j<=1&&flat;j++)for(let i=-1;i<=1;i++){if(Math.abs(bed[at(x+i,y+j)]-b0)>.35)flat=false;}
+   if(!flat)continue;
+   mapBuildingSpot={x,y};
+   return;
+  }
+ }
+ // No dry, flat spot found: no building. Never place in water or on a slope.
+}
+function clearMapBuilding(){if(mapBuilding){scene.remove(mapBuilding);mapBuilding=null;}}
+function placeMapBuilding(){
+ clearMapBuilding();
+ if(!mapBuildingSpot)return;
+ let s=mapBuildingSpot,k=at(s.x,s.y);
+ let g=new THREE.Group();
+ let walls=new THREE.Mesh(hutGeos.walls,hutMats.wall);walls.position.y=.6;walls.castShadow=true;g.add(walls);
+ let roof=new THREE.Mesh(hutGeos.roof,hutMats.roof);roof.position.y=1.7;roof.rotation.y=Math.PI/4;roof.castShadow=true;g.add(roof);
+ let door=new THREE.Mesh(hutGeos.door,hutMats.door);door.position.set(0,.35,.82);g.add(door);
+ g.position.set((s.x-NX/2)*DX,bed[k],(s.y-NY/2)*DX);
+ g.rotation.y=(riverX(s.y)>s.x)?Math.PI/2:-Math.PI/2; // door faces the river
+ scene.add(g);mapBuilding=g;
+}
+function logBuild(c,event,detail){buildingEvents.push([elapsed.toFixed(2),c.name,c.tag||'',event,detail]);}
+function pickForageSpot(c){
+ let cands=plants.filter(p=>p.kindName==='tree'||p.kindName==='pine');
+ if(!cands.length)return null;
+ for(let tries=0;tries<12;tries++){
+  let p=cands[Math.floor(Math.random()*cands.length)];
+  let gx=p.mesh.position.x/DX+NX/2,gy=p.mesh.position.z/DX+NY/2;
+  if(Math.hypot(gx-c.x,gy-c.y)<30)return {x:gx,y:gy};
+ }
+ let p=cands[0];return {x:p.mesh.position.x/DX+NX/2,y:p.mesh.position.z/DX+NY/2};
+}
+function placeDamSegment(c){
+ let b=c.build,ox=damOffset(b.segIndex),sx=Math.round(b.damSite.x+ox),sy=Math.round(b.damSite.y);
+ for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){
+  let x=clamp(sx+i,1,NX-2),y=clamp(sy+j,1,NY-2),k=at(x,y);
+  bed[k]+=.18;damMask[k]=1;
+ }
+ let g=new THREE.Group();
+ for(let q=0;q<4;q++){let s=new THREE.Mesh(damGeos.stick,damMats.stick);s.position.set((q-1.5)*.5,.12,0);s.rotation.z=Math.PI/2+(Math.random()-.5)*.3;s.rotation.y=(Math.random()-.5)*.4;g.add(s);}
+ let mound=new THREE.Mesh(damGeos.mound,damMats.mud);mound.scale.set(1.1,.45,1.1);mound.position.y=.1;g.add(mound);
+ g.position.set((sx-NX/2)*DX,bed[at(sx,sy)]+.05,(sy-NY/2)*DX);
+ damGroup.add(g);
+ b.segments.push({x:sx,y:sy,mesh:g});
+ buildTerrain(); // show the raised bed
+ logBuild(c,'segment_placed','dam segment '+b.segments.length+' at '+sx+','+sy);
+}
+function buildLodgeMesh(c){
+ let b=c.build;
+ let g=new THREE.Group();
+ let dome=new THREE.Mesh(damGeos.dome,damMats.mud);dome.scale.set(1.6,1,1.6);g.add(dome);
+ for(let q=0;q<5;q++){let s=new THREE.Mesh(damGeos.stick,damMats.stick);s.position.set((Math.random()-.5)*1.4,.5+Math.random()*.3,(Math.random()-.5)*1.4);s.rotation.set(Math.random(),Math.random()*3,Math.PI/2);g.add(s);}
+ let k=at(clamp(Math.round(b.lodge.x),0,NX-1),clamp(Math.round(b.lodge.y),0,NY-1));
+ g.position.set((b.lodge.x-NX/2)*DX,bed[k]+.05,(b.lodge.y-NY/2)*DX);
+ damGroup.add(g);b.lodge.mesh=g;
+}
+function upstreamDepth(b){
+ let s=0,n=0;
+ for(let j=-6;j<=-3;j++)for(let i=-2;i<=2;i++){let x=clamp(Math.round(b.damSite.x)+i,1,NX-2),y=clamp(Math.round(b.damSite.y)+j,1,NY-2);s+=H[at(x,y)];n++;}
+ return s/n;
+}
+function updateBuild(c,dt){
+ let b=c.build;if(!b)return null;
+ if(c.recovering||(c===animal&&$('goal').value!=='wander')){if(b.state!=='idle'){b.state='idle';c.activity='';}return null;}
+ let canBuild=c.energy>.5*c.energyMax&&c.mode!=='swimming'&&c.mode!=='floating';
+ if(b.state==='idle'){
+  if(canBuild&&b.segments.length<DAM_SEGMENTS_MAX){b.state=b.sticks>0?'carry':'seek';b.target=null;}
+  else if(canBuild&&b.segments.length>=2&&!b.lodge.built){b.state='lodge';}
+  else return null;
+ }
+ if(b.state==='seek'){
+  if(!b.target)b.target=pickForageSpot(c);
+  if(!b.target){b.state='idle';return null;}
+  if(Math.hypot(b.target.x-c.x,b.target.y-c.y)<2){
+   b.timer+=dt;c.activity='gathering';
+   if(b.timer>=2){b.timer=0;b.sticks++;c.energy=clamp(c.energy-1,0,c.energyMax);logBuild(c,'stick_gathered','sticks now '+b.sticks);b.target=null;b.state=b.sticks>=3?'carry':'seek';}
+   return {x:c.x,y:c.y,wait:true};
+  }
+  c.activity='seeking sticks';
+  return {x:b.target.x,y:b.target.y};
+ }
+ if(b.state==='carry'){
+  let tx=b.damSite.x+damOffset(b.segIndex),ty=b.damSite.y;
+  if(Math.hypot(tx-c.x,ty-c.y)<1.5){b.state='place';b.timer=0;}
+  c.activity='carrying sticks';
+  return {x:tx,y:ty};
+ }
+ if(b.state==='place'){
+  b.timer+=dt;c.activity='placing dam';
+  if(b.timer>=3){b.timer=0;placeDamSegment(c);b.sticks--;c.energy=clamp(c.energy-3,0,c.energyMax);b.segIndex++;
+   b.state=b.sticks>0&&b.segments.length<DAM_SEGMENTS_MAX?'carry':(b.segments.length<DAM_SEGMENTS_MAX?'seek':'idle');}
+  return {x:c.x,y:c.y,wait:true};
+ }
+ if(b.state==='lodge'){
+  let tx=b.lodge.x,ty=b.lodge.y;
+  if(Math.hypot(tx-c.x,ty-c.y)<2){
+   b.lodge.progress+=dt/20;c.activity='building lodge';
+   if(b.lodge.progress>=1){b.lodge.progress=1;b.lodge.built=true;buildLodgeMesh(c);logBuild(c,'lodge_built','lodge at '+Math.round(tx)+','+Math.round(ty));b.state='idle';c.activity='';}
+   return {x:c.x,y:c.y,wait:true};
+  }
+  c.activity='heading to lodge';
+  return {x:tx,y:ty};
+ }
+ return null;
+}
+// ============ Rigs for the four new groups (primitive parts only) ============
+function makeFishRig(c){
+ let root=new THREE.Group();
+ let bodyMat=new THREE.MeshStandardMaterial({color:variantColor([0x7fa8b8,0x9ab88a,0xb88a6a],c.traits.variant),roughness:.5,metalness:.3});
+ let finMat=new THREE.MeshStandardMaterial({color:variantColor([0x4a7a8c,0x5a8a4a,0x8a5a3a],c.traits.variant),roughness:.6});
+ let body=new THREE.Mesh(new THREE.SphereGeometry(.22,12,10),bodyMat);body.scale.set(2.2,.8,.7);body.castShadow=true;root.add(body);
+ let tail=new THREE.Mesh(new THREE.ConeGeometry(.16,.4,4),finMat);tail.rotation.z=Math.PI/2;tail.position.x=-.5;tail.scale.set(1,1,.25);root.add(tail);
+ let dorsal=new THREE.Mesh(new THREE.ConeGeometry(.09,c.sex==='male'?.3:.16,4),finMat);dorsal.position.set(-.05,.2,0);root.add(dorsal);
+ let eyeMat=new THREE.MeshStandardMaterial({color:0x101418});
+ let e1=new THREE.Mesh(new THREE.SphereGeometry(.03,6,6),eyeMat);e1.position.set(.38,.06,.12);root.add(e1);
+ let e2=e1.clone();e2.position.z=-.12;root.add(e2);
+ root.userData={body,tail,dorsal,variantMats:[[bodyMat,[0x7fa8b8,0x9ab88a,0xb88a6a]],[finMat,[0x4a7a8c,0x5a8a4a,0x8a5a3a]]]};return {root};
+}
+function makeBirdRig(c){
+ let root=new THREE.Group();
+ let feather=new THREE.MeshStandardMaterial({color:variantColor([0x8a6f4d,0x6a6a72,0x9a5a3a],c.traits.variant),roughness:.9});
+ let beakMat=new THREE.MeshStandardMaterial({color:0xd89a3d,roughness:.7});
+ let body=new THREE.Mesh(new THREE.CapsuleGeometry(.16,.42,4,8),feather);body.rotation.z=Math.PI/2;body.castShadow=true;root.add(body);
+ let head=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),feather);head.position.set(.32,.12,0);root.add(head);
+ let beak=new THREE.Mesh(new THREE.ConeGeometry(.05,.16,6),beakMat);beak.rotation.z=-Math.PI/2;beak.position.set(.45,.12,0);root.add(beak);
+ let tail=new THREE.Mesh(new THREE.BoxGeometry(.3,.02,.16),feather);tail.position.set(-.32,.04,0);root.add(tail);
+ function wing(side){let g=new THREE.Group();g.position.set(.05,.06,side*.1);let m=new THREE.Mesh(new THREE.BoxGeometry(.34,.02,.5),feather);m.position.set(0,0,side*.28);m.castShadow=true;g.add(m);root.add(g);return g;}
+ let wingL=wing(1),wingR=wing(-1);
+ let crest=null;
+ if(c.sex==='male'){crest=new THREE.Mesh(new THREE.ConeGeometry(.04,.14,6),beakMat);crest.position.set(.3,.26,0);root.add(crest);}
+ root.userData={body,head,wingL,wingR,crest,variantMats:[[feather,[0x8a6f4d,0x6a6a72,0x9a5a3a]]]};return {root};
+}
+function makeBugRig(c){
+ let root=new THREE.Group();
+ let shell=new THREE.MeshStandardMaterial({color:variantColor([0x4a6b2a,0x6b4a2a,0x8a7a2a],c.traits.variant),roughness:.6});
+ let dark=new THREE.MeshStandardMaterial({color:0x2c3a1e,roughness:.8});
+ let wingMat=new THREE.MeshStandardMaterial({color:0xcfe8ff,roughness:.3,transparent:true,opacity:.55,side:THREE.DoubleSide});
+ let body=new THREE.Mesh(new THREE.SphereGeometry(.11,10,8),shell);body.scale.set(1.4,.8,1);body.castShadow=true;root.add(body);
+ let head=new THREE.Mesh(new THREE.SphereGeometry(.07,8,6),dark);head.position.set(.16,.02,0);root.add(head);
+ for(let s of [-1,1])for(let q=0;q<3;q++){let leg=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.22,4),dark);leg.position.set(-.05+q*.07,-.07,s*.12);leg.rotation.z=1.1;leg.rotation.x=s*.7;root.add(leg);}
+ function wing(side){let g=new THREE.Group();g.position.set(-.02,.08,side*.03);let m=new THREE.Mesh(new THREE.BoxGeometry(.2,.005,.14),wingMat);m.position.set(-.02,0,side*.09);g.add(m);root.add(g);return g;}
+ let wingL=wing(1),wingR=wing(-1);
+ if(c.sex==='male'){for(let s of [-1,1]){let a=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,.16,4),dark);a.position.set(.22,.08,s*.03);a.rotation.z=-.7;a.rotation.x=s*.4;root.add(a);}}
+ root.userData={body,wingL,wingR,variantMats:[[shell,[0x4a6b2a,0x6b4a2a,0x8a7a2a]]]};return {root};
+}
+function makeHumanoidRig(c){
+ let root=new THREE.Group();
+ let skin=new THREE.MeshStandardMaterial({color:variantColor([0xc9a17e,0xa87a5a,0xe0b896],c.traits.variant),roughness:.8});
+ let cloth=new THREE.MeshStandardMaterial({color:variantColor([0x5a7a9a,0x6a8a5a,0x9a6a4a],c.traits.variant),roughness:.9});
+ let torso=new THREE.Mesh(new THREE.CapsuleGeometry(.16,.34,4,8),cloth);torso.position.y=.95;torso.castShadow=true;
+ torso.scale.set(c.sex==='male'?1.15:c.sex==='female'?.92:1,1,1);
+ root.add(torso);
+ let head=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),skin);head.position.y=1.42;root.add(head);
+ function limb(mat,x,y){let g=new THREE.Group();g.position.set(x,y,0);let m=new THREE.Mesh(new THREE.CylinderGeometry(.05,.04,.62,6),mat);m.position.y=-.31;g.add(m);root.add(g);return g;}
+ let legL=limb(cloth,-.09,.62),legR=limb(cloth,.09,.62);
+ let armL=limb(skin,-.22,1.22),armR=limb(skin,.22,1.22);
+ root.userData={torso,head,legL,legR,armL,armR,variantMats:[[skin,[0xc9a17e,0xa87a5a,0xe0b896]],[cloth,[0x5a7a9a,0x6a8a5a,0x9a6a4a]]]};return {root};
+}
+// ============ Shared energy / hydration helpers (Stage 6 traits) ============
+function baseEnergy(c,dt,drainFrame,gainFrame){
+ c.energy=clamp(c.energy-drainFrame*c.traits.drain*dt*60+gainFrame*dt*60,0,c.energyMax);
+}
+function hydroStep(c,dt,depth){
+ if(c.group==='swim'){c.hydration=100;return;}
+ let heat=1+Math.max(0,temp-25)*.05;
+ c.hydration=clamp(c.hydration+(depth>.3?.06:-.02*heat*c.traits.hydro)*dt*60,0,100);
+}
+function recoveryCheck(c){
+ if(c.energy<=.25*c.energyMax)c.recovering=true;
+ else if(c.energy>=.60*c.energyMax)c.recovering=false;
+ return c.recovering;
+}
+// ============ Land trio steering (energy model kept exactly as specified) ============
+function steerCreature(c,dt,isPrimary=false){
+ let ix=clamp(Math.round(c.x),1,NX-2),iy=clamp(Math.round(c.y),1,NY-2),k=at(ix,iy),depth=H[k],u=HU[k]/Math.max(depth,.001),v=HV[k]/Math.max(depth,.001),center=riverX(c.y);
+ let gx=c.x,gy=c.y,dx,dy,d,ax,ay;
+ let bTarget=(c.group==='land'&&c.sex!=='child')?updateBuild(c,dt):null;
+ if(bTarget&&bTarget.wait){ax=-c.vx*.9;ay=-c.vy*.9;}
+ else if(bTarget){dx=bTarget.x-c.x;dy=bTarget.y-c.y;d=Math.hypot(dx,dy)||1;ax=dx/d*Math.min(1.1,d*.035)-c.vx*.9;ay=dy/d*Math.min(1.1,d*.035)-c.vy*.9;}
+ else if(isPrimary){
+  let goal=$('goal').value;
+  let roam=c.traits.bold==='high'?1.5:.8;
+  if(goal==='water'){gx=center;gy=NY*.5;}else if(goal==='cross'){gx=c.x<center?center+13:center-13;gy=NY*.5;}else if(goal==='wander'){gx=center+Math.sin(elapsed*.18)*20*roam;gy=NY*.5+Math.sin(elapsed*.23)*23*roam;}
+  dx=gx-c.x;dy=gy-c.y;d=Math.hypot(dx,dy)||1;
+  ax=goal==='rest'?0:dx/d*Math.min(1.1,d*.035)-c.vx*.9;ay=goal==='rest'?0:dy/d*Math.min(1.1,d*.035)-c.vy*.9;
+ }else if(c.sex==='child'&&c.parent){
+  // Children shadow a parent.
+  let p=c.parent,ox=Math.sin(elapsed*.5+c.x)*2,oy=Math.cos(elapsed*.4+c.y)*2;
+  gx=p.x+ox;gy=p.y+oy;
+  dx=gx-c.x;dy=gy-c.y;d=Math.hypot(dx,dy)||1;
+  ax=dx/d*Math.min(.9,d*.03)-c.vx*.85;ay=dy/d*Math.min(.9,d*.03)-c.vy*.85;
+ }else{
+  // Beaver B shadows the focal animal at a comfortable distance.
+  let target=animal,sepX=c.x-target.x,sepY=c.y-target.y,sep=Math.hypot(sepX,sepY)||1;
+  let roam=c.traits.bold==='high'?1.4:.85;
+  let side=Math.sin(elapsed*.35)*4*roam;gx=target.x+Math.cos(elapsed*.42)*5*roam;gy=target.y+side;
+  if(sep<3){gx=c.x+sepX/sep*4;gy=c.y+sepY/sep*4;}
+  dx=gx-c.x;dy=gy-c.y;d=Math.hypot(dx,dy)||1;
+  ax=dx/d*Math.min(.88,d*.025)-c.vx*.85;
+  ay=dy/d*Math.min(.88,d*.025)-c.vy*.85;
+ }
+ if($('a15').checked){ax=0;ay=0;}if(isPrimary&&$('a11').checked){ax*=.48;ay*=.48;}
+ let resting=isPrimary&&$('goal').value==='rest';
+ // Exhaustion hysteresis: stop swimming at 10% energy, resume at 25% — a
+ // long swim can no longer pin energy at zero, and drifting restores it.
+ // Resting animals float, never swim.
+ if(depth>.47){
+  if(c.energy<=.10*c.energyMax)c.exhausted=true;else if(c.energy>=.25*c.energyMax)c.exhausted=false;
+  c.mode=Math.hypot(u,v)>.18&&!c.exhausted&&!resting?'swimming':'floating';
+  ax+=u*.23-c.vx*.18;ay+=v*.23-c.vy*.18;}
+ else{ // Recovery hysteresis: rest starts at 25% and runs until 60%, so energy
+  // cycles through a real range instead of pinning on one line.
+  if(c.energy<=.25*c.energyMax)c.recovering=true;else if(c.energy>=.60*c.energyMax)c.recovering=false;
+  c.mode=(c.recovering||(!isPrimary&&nightRest(c)))?'recovery':'walking';}
+ if(c.mode==='swimming'){ax+=Math.sin(elapsed*3+c.y)*.08;ay+=Math.cos(elapsed*2+c.x)*.045;}
+ if(isPrimary&&$('a14').checked){ax+=Math.sin(elapsed*6)*.22;ay+=Math.cos(elapsed*5)*.22;}
+ if(isPrimary&&$('a12').checked)c.heading+=Math.sin(elapsed*8)*dt*1.8;
+ c.vx=clamp(c.vx+ax*dt,-1.8,1.8);c.vy=clamp(c.vy+ay*dt,-1.8,1.8);
+ if(c.mode==='recovery'||resting){c.vx*=.85;c.vy*=.85;} // rest truly stops the animal
+ c.x=clamp(c.x+c.vx*dt*2.5*c.paceEff*nightPace,2,NX-3);c.y=clamp(c.y+c.vy*dt*2.5*c.paceEff*nightPace,2,NY-3);
+ c.heading=Math.atan2(c.vy,c.vx);
+ // Realistic energy economy (per-second rates at any frame rate, via dt*60):
+ // walking 0.24%/s, swimming 0.72%/s, floating 0.06%/s. Recovery restores
+ // 1.2%/s, drifting (floating) 0.3%/s, and the rest goal restores 0.6%/s
+ // instead of draining. Drains scale by the individual's drain trait;
+ // carrying sticks costs 1.5x; resting near your own lodge boosts recovery.
+ let b=c.build,carrying=b&&(b.state==='carry'||b.state==='place');
+ let drain=c.mode==='swimming'?.012:c.mode==='floating'?.001:c.mode==='recovery'?0:.004;
+ drain*=c.traits.drain*(carrying?1.5:1);
+ let gain=c.mode==='recovery'?.02:c.mode==='floating'?.005:0;
+ if(c.mode==='recovery'&&b&&b.lodge.built&&Math.hypot(c.x-b.lodge.x,c.y-b.lodge.y)<6)gain*=1.5;
+ if(resting&&c.mode==='walking'){drain=0;gain=.01;}
+ c.energy=clamp(c.energy-drain*dt*60+gain*dt*60,0,c.energyMax);
+ let heatScale=1+Math.max(0,temp-25)*.05;
+ c.hydration=clamp(c.hydration+(depth>.3?.06:-.02*heatScale*c.traits.hydro)*dt*60,0,100);
+ if(!bTarget)c.activity='';
+}
+function steerSwimmer(c,dt){
+ let ix=clamp(Math.round(c.x),1,NX-2),iy=clamp(Math.round(c.y),1,NY-2),k=at(ix,iy),depth=H[k],u=HU[k]/Math.max(depth,.001),v=HV[k]/Math.max(depth,.001);
+ let tx,ty;
+ if(c.sex==='child'&&c.parent){tx=c.parent.x;ty=c.parent.y;}
+ else{let roam=c.traits.bold==='high'?4:2;tx=riverX(c.y)+Math.sin(elapsed*.3+c.x)*roam;ty=c.y+Math.sin(elapsed*.17)*6;}
+ let dx=tx-c.x,dy=ty-c.y,d=Math.hypot(dx,dy)||1;
+ let ax=dx/d*Math.min(.9,d*.03)-c.vx*.8+u*.25,ay=dy/d*Math.min(.9,d*.03)-c.vy*.8+v*.25;
+ c.vx=clamp(c.vx+ax*dt,-1.6,1.6);c.vy=clamp(c.vy+ay*dt,-1.6,1.6);
+ c.x=clamp(c.x+c.vx*dt*2.2*c.paceEff*nightPace,2,NX-3);c.y=clamp(c.y+c.vy*dt*2.2*c.paceEff*nightPace,2,NY-3);
+ c.heading=Math.atan2(c.vy,c.vx);
+ let resting=recoveryCheck(c)||nightRest(c);
+ c.mode=resting?'resting':'swimming';
+ if(resting)baseEnergy(c,dt,0,.017);else baseEnergy(c,dt,.006,0);
+ hydroStep(c,dt,depth);
+}
+function steerFlyer(c,dt){
+ if(c.hydration<40)c.drinking=true;else if(c.hydration>85)c.drinking=false;
+ let tx,ty;
+ if(c.drinking){tx=riverX(c.y);ty=c.y;}
+ else if(c.sex==='child'&&c.parent){tx=c.parent.x;ty=c.parent.y;}
+ else{
+  if(Math.hypot(c.tx-c.x,c.ty-c.y)<3||(c.tx===0&&c.ty===0)){c.tx=4+Math.random()*(NX-8);c.ty=4+Math.random()*(NY-8);}
+  tx=c.tx;ty=c.ty;
+ }
+ let resting=recoveryCheck(c)||nightRest(c);
+ if(resting)c.flyState='perch';else if(c.energy>=.6*c.energyMax)c.flyState='fly';
+ let targetAlt=c.flyState==='perch'?0:c.drinking?1:8+Math.sin(elapsed*.5+c.x)*3;
+ c.alt+=(targetAlt-c.alt)*Math.min(1,dt*.8);
+ let dx=tx-c.x,dy=ty-c.y,d=Math.hypot(dx,dy)||1;
+ let sp=c.flyState==='perch'?0:1.4;
+ let ax=dx/d*sp-c.vx*.7,ay=dy/d*sp-c.vy*.7;
+ c.vx=clamp(c.vx+ax*dt,-2,2);c.vy=clamp(c.vy+ay*dt,-2,2);
+ c.x=clamp(c.x+c.vx*dt*2.6*c.paceEff*nightPace,2,NX-3);c.y=clamp(c.y+c.vy*dt*2.6*c.paceEff*nightPace,2,NY-3);
+ if(Math.abs(c.vx)+Math.abs(c.vy)>.05)c.heading=Math.atan2(c.vy,c.vx);
+ let ix=clamp(Math.round(c.x),1,NX-2),iy=clamp(Math.round(c.y),1,NY-2),depth=H[at(ix,iy)];
+ if(c.flyState==='perch'){c.mode='perched';baseEnergy(c,dt,0,.017);}
+ else{let gliding=Math.hypot(c.vx,c.vy)<.4;c.mode=gliding?'gliding':'flying';baseEnergy(c,dt,gliding?.003:.008,0);}
+ if(c.drinking&&depth>.3&&c.alt<2)c.hydration=clamp(c.hydration+.06*dt*60,0,100);
+ else c.hydration=clamp(c.hydration-.02*(1+Math.max(0,temp-25)*.05)*c.traits.hydro*dt*60,0,100);
+}
+function steerBug(c,dt){
+ if(c.sex==='child'&&c.parent){c.tx=c.parent.x;c.ty=c.parent.y;}
+ else if(Math.hypot(c.tx-c.x,c.ty-c.y)<2||(c.tx===0&&c.ty===0)){
+  let edge=riverX(c.y)+(Math.random()<.5?-1:1)*(4+Math.random()*8);
+  c.tx=clamp(edge,3,NX-4);c.ty=clamp(c.y+(Math.random()-.5)*14,3,NY-4);
+ }
+ c.hopT-=dt;
+ if(c.hopT<=0&&Math.random()<.02&&c.z<=0){c.hopT=.6;c.vz=1.2;}
+ let dx=c.tx-c.x,dy=c.ty-c.y,d=Math.hypot(dx,dy)||1;
+ let ax=dx/d*Math.min(.7,d*.04)-c.vx*.8,ay=dy/d*Math.min(.7,d*.04)-c.vy*.8;
+ c.vx=clamp(c.vx+ax*dt,-1.2,1.2);c.vy=clamp(c.vy+ay*dt,-1.2,1.2);
+ c.x=clamp(c.x+c.vx*dt*1.6*c.paceEff*nightPace,2,NX-3);c.y=clamp(c.y+c.vy*dt*1.6*c.paceEff*nightPace,2,NY-3);
+ c.z=Math.max(0,c.z+c.vz*dt);c.vz-=3.43*dt;if(c.z<=0){c.z=0;c.vz=0;}
+ if(Math.abs(c.vx)+Math.abs(c.vy)>.05)c.heading=Math.atan2(c.vy,c.vx);
+ let ix=clamp(Math.round(c.x),1,NX-2),iy=clamp(Math.round(c.y),1,NY-2),depth=H[at(ix,iy)];
+ let resting=recoveryCheck(c)||nightRest(c);
+ c.mode=resting?'resting':(c.z>0?'hopping':'crawling');
+ if(resting)baseEnergy(c,dt,0,.017);else baseEnergy(c,dt,c.z>0?.01:.0025,0);
+ hydroStep(c,dt,depth);
+}
+function steerHumanoid(c,dt){
+ let ix=clamp(Math.round(c.x),1,NX-2),iy=clamp(Math.round(c.y),1,NY-2),k=at(ix,iy),depth=H[k];
+ let tx,ty;
+ if(c.sex==='child'&&c.parent){tx=c.parent.x;ty=c.parent.y;}
+ else{
+  if(Math.hypot(c.tx-c.x,c.ty-c.y)<3||(c.tx===0&&c.ty===0)){c.tx=clamp(c.x+(Math.random()-.5)*30,3,NX-4);c.ty=clamp(c.y+(Math.random()-.5)*24,3,NY-4);}
+  tx=c.tx;ty=c.ty;
+  if(depth>.3){tx=c.x<riverX(c.y)?c.x-6:c.x+6;}
+ }
+ let dx=tx-c.x,dy=ty-c.y,d=Math.hypot(dx,dy)||1;
+ let ax=dx/d*Math.min(1,d*.03)-c.vx*.85,ay=dy/d*Math.min(1,d*.03)-c.vy*.85;
+ c.vx=clamp(c.vx+ax*dt,-1.8,1.8);c.vy=clamp(c.vy+ay*dt,-1.8,1.8);
+ c.x=clamp(c.x+c.vx*dt*2.4*c.paceEff*nightPace,2,NX-3);c.y=clamp(c.y+c.vy*dt*2.4*c.paceEff*nightPace,2,NY-3);
+ if(Math.abs(c.vx)+Math.abs(c.vy)>.05)c.heading=Math.atan2(c.vy,c.vx);
+ let resting=recoveryCheck(c)||nightRest(c);
+ let swimming=depth>.47&&!resting;
+ c.mode=resting?'resting':swimming?'swimming':'walking';
+ if(resting)baseEnergy(c,dt,0,.02);else baseEnergy(c,dt,swimming?.012:.004,0);
+ hydroStep(c,dt,depth);
+}
+function updateCreatures(dt){
+ // Step 3.4 (M3): a held creature skips steering — frozen in place while
+ // the world runs on. Its pose still updates (updateRigs), so it stays
+ // visible where it was held; its build state freezes mid-step and
+ // resumes mid-step, which is correct for a hold, not a bug.
+ if(!animal.held)steerCreature(animal,dt,true);
+ companions.forEach(c=>{if(!c.held)steerCreature(c,dt,false);});
+ creatures.forEach(c=>{
+  if(c.held)return;
+  if(c.group==='land'&&c!==animal&&!companions.includes(c))steerCreature(c,dt,false);
+  else if(c.group==='swim')steerSwimmer(c,dt);
+  else if(c.group==='fly')steerFlyer(c,dt);
+  else if(c.group==='bug')steerBug(c,dt);
+  else if(c.group==='humanoid')steerHumanoid(c,dt);
+ });
+}
+// ============ Posing ============
+function poseRig(rig,c){
+ const r=rig.root,ud=r.userData,scale=DX;let ix=clamp(Math.round(c.x),0,NX-1),iy=clamp(Math.round(c.y),0,NY-1),k=at(ix,iy),wet=H[k]>.28;let surface=bed[k]+(wet?H[k]:0);r.position.set((c.x-NX/2)*scale,surface+.48,(c.y-NY/2)*scale);r.rotation.y=-c.heading;
+ let swim=c.mode==='swimming'||c.mode==='floating',phase=elapsed*(swim?5.5:8);
+ ud.body.scale.set(1,$('a12').checked&&c===animal?1+Math.sin(phase)*.1:1,1);
+ ud.head.position.set(.73,.13,0);ud.snout.position.set(.97,.08,0);
+ ud.tail.position.set(-.77,.02,0);ud.tail.rotation.z=Math.sin(phase*.7)*.45;ud.tail.rotation.x=Math.cos(phase*.7)*.28;
+ ud.legs.forEach((leg,n)=>{let side=leg.side,fore=leg.fore,baseX=fore*.42,baseZ=side*.24;let swing=swim?Math.sin(phase+n*Math.PI/2)*.32:Math.sin(phase+n*Math.PI)*.22;let shoulder=[baseX,.02,baseZ],elbow=[baseX+swing*.55,-.32,baseZ*1.25],paw=[baseX+swing,-.55+(swim?Math.sin(phase+n)*.12:0),baseZ*1.4];if(c===animal&&$('a11').checked){elbow[1]+=.09*Math.sin(phase*2+n);paw[1]+=.15*Math.cos(phase*2+n);}setBone(leg.upper,shoulder,elbow);setBone(leg.lower,elbow,paw);leg.foot.position.set(...paw);});
+}
+function poseFish(c){
+ let r=c.rig.root,ud=r.userData;
+ let ix=clamp(Math.round(c.x),0,NX-1),iy=clamp(Math.round(c.y),0,NY-1),k=at(ix,iy);
+ let surface=bed[k]+H[k];
+ r.position.set((c.x-NX/2)*DX,surface-.12,(c.y-NY/2)*DX);
+ r.rotation.y=-c.heading;
+ let wag=Math.sin(elapsed*7+c.x)*.4;
+ ud.tail.rotation.y=wag;ud.body.rotation.y=Math.sin(elapsed*7+c.x+1)*.08;
+}
+function poseBird(c){
+ let r=c.rig.root,ud=r.userData;
+ let ix=clamp(Math.round(c.x),0,NX-1),iy=clamp(Math.round(c.y),0,NY-1),k=at(ix,iy);
+ let ground=bed[k]+H[k];
+ r.position.set((c.x-NX/2)*DX,ground+.5+c.alt,(c.y-NY/2)*DX);
+ r.rotation.y=-c.heading;
+ let flying=c.mode==='flying'||c.mode==='gliding';
+ let flap=flying?Math.sin(elapsed*(c.mode==='gliding'?3:11))*.9:0;
+ ud.wingL.rotation.x=.25+flap;ud.wingR.rotation.x=-.25-flap;
+ r.rotation.x=c.flyState==='perch'?0:-.12;
+}
+function poseBug(c){
+ let r=c.rig.root,ud=r.userData;
+ let ix=clamp(Math.round(c.x),0,NX-1),iy=clamp(Math.round(c.y),0,NY-1),k=at(ix,iy);
+ r.position.set((c.x-NX/2)*DX,bed[k]+.08+c.z,(c.y-NY/2)*DX);
+ r.rotation.y=-c.heading;
+ let airborne=c.z>0;
+ let flap=airborne?Math.sin(elapsed*40)*.8:0;
+ ud.wingL.rotation.x=.3+flap;ud.wingR.rotation.x=-.3-flap;
+}
+function poseHumanoid(c){
+ let r=c.rig.root,ud=r.userData;
+ let ix=clamp(Math.round(c.x),0,NX-1),iy=clamp(Math.round(c.y),0,NY-1),k=at(ix,iy);
+ let wet=H[k]>.28,surface=bed[k]+(wet?H[k]:0);
+ r.position.set((c.x-NX/2)*DX,surface,(c.y-NY/2)*DX);
+ r.rotation.y=-c.heading;
+ let phase=elapsed*7,swim=c.mode==='swimming';
+ let swing=swim?.15:Math.sin(phase)*.5;
+ ud.legL.rotation.x=swing;ud.legR.rotation.x=-swing;
+ ud.armL.rotation.x=-swing*.8;ud.armR.rotation.x=swing*.8;
+}
+function poseCreature(c){
+ if(c.group==='land')poseRig(c.rig,c);
+ else if(c.group==='swim')poseFish(c);
+ else if(c.group==='fly')poseBird(c);
+ else if(c.group==='bug')poseBug(c);
+ else poseHumanoid(c);
+}
+function updateRigs(){creatures.forEach(poseCreature);}
+// Floating tags: one HTML label per creature, projected from its rig
+// position each frame (also while paused, so labels track the camera).
+// Height above the creature varies by family; opacity fades with distance.
+// Size shrinks with the map (and with camera distance) so tags don't pile
+// up on big maps or zoomed-out views: 10px at base map / close up, down
+// to 5px at the biggest map or far away. Never bigger than 10px.
+const TAG_HEIGHT={land:1.7,swim:.6,fly:1.1,bug:.5,humanoid:2.1};
+const _tagV=new THREE.Vector3();
+function updateTags(){
+ let w=stage.clientWidth,h=stage.clientHeight;
+ for(let c of creatures){
+  if(!c.tagEl)continue;
+  let r=c.rig.root;
+  _tagV.set(r.position.x,r.position.y+TAG_HEIGHT[c.group]*c.scaleEff,r.position.z).project(camera);
+  if(_tagV.z>1||_tagV.x<-1.05||_tagV.x>1.05||_tagV.y<-1.05||_tagV.y>1.05){c.tagEl.style.display='none';continue;}
+  c.tagEl.style.display='block';
+  // Step 3.4: a held creature's tag reads "TAG · HELD" — the WORDS carry
+  // it (never color alone). Text/class change only on a held change, so
+  // the per-frame loop stays a cheap compare, not a DOM write.
+  let wantText=c.held?c.tag+' · HELD':c.tag;
+  if(c.tagEl.textContent!==wantText)c.tagEl.textContent=wantText;
+  c.tagEl.classList.toggle('held',!!c.held);
+  c.tagEl.style.left=((_tagV.x*.5+.5)*w)+'px';
+  c.tagEl.style.top=((-_tagV.y*.5+.5)*h)+'px';
+  let dist=camera.position.distanceTo(r.position);
+  c.tagEl.style.opacity=clamp(1.15-dist/160,.3,1).toFixed(2);
+  let tagScale=clamp(Math.min(104/NX,1.15-dist/160),.5,1);
+  c.tagEl.style.fontSize=(10*tagScale).toFixed(1)+'px';
+  c.tagEl.style.padding=(1*tagScale).toFixed(1)+'px '+(5*tagScale).toFixed(1)+'px';
+ }
+}
+function updateVisual(dt){
+ const p=waterGeo.attributes.position;let totalH=0,totalV=0,totalQ=0,riverDescriptor=0,indices=waterGeo.index.array,ic=0;
+ let chop=wind*.012; // wind roughens the surface; flat when calm
+ for(let y=0;y<NY;y++)for(let x=0;x<NX;x++){let k=at(x,y),hh=H[k],u=HU[k]/Math.max(hh,.001),v=HV[k]/Math.max(hh,.001);p.setY(k,bed[k]+hh+.035+Math.sin(x*.9+elapsed*3)*chop+Math.cos(y*1.1+elapsed*2.3)*chop*.7);totalH+=hh;totalV+=Math.hypot(u,v);totalQ+=hh*Math.hypot(u,v);riverDescriptor+=hh*.3+Math.hypot(u,v)*.2+sed[k]*.1;}
+ // Omit dry floodplain triangles; require a connected water column across each rendered cell.
+ for(let y=0;y<NY-1;y++)for(let x=0;x<NX-1;x++){let a=at(x,y),b=a+1,c=a+NX,d=c+1;let wet=(H[a]+H[b]+H[c]+H[d])*.25>.235;if(wet){indices[ic++]=a;indices[ic++]=c;indices[ic++]=b;indices[ic++]=b;indices[ic++]=c;indices[ic++]=d;}}
+ waterGeo.index.needsUpdate=true;waterGeo.setDrawRange(0,ic);p.needsUpdate=true;waterGeo.computeVertexNormals();
+ updatePlantSway();
+ updateRigs();
+ let meanH=totalH/NN,meanV=totalV/NN,dis=totalQ/NN;
+ let riverId=clamp(.52+.2*Math.exp(-Math.abs(meanH-.22)*3)+.18*Math.exp(-Math.abs(dis-.12)*3)+.1*(1-($('a13').checked?.1:0)),0,1);
+ let continuity=clamp(.97-($('a11').checked?.2:0)-($('a12').checked?.28:0)-($('a14').checked?.18:0)-($('a15').checked?.08:0),0,1);
+ let observer=clamp(($('a15').checked?.32:.84)-($('a12').checked?.1:0)-($('a14').checked?.12:0),0,1);
+ animal.identity=clamp(.96-($('a11').checked?.04:0)-($('a12').checked?.17:0),0,1);
+ last={meanH,meanV,dis,riverId,continuity,observer};
+ if(frame%12===0){let ts=elapsed.toFixed(2);
+ samples.push([ts,animal.x.toFixed(3),animal.y.toFixed(3),animal.mode,animal.energy.toFixed(2),animal.hydration.toFixed(2),meanH.toFixed(4),meanV.toFixed(4),rain.toFixed(3),wind.toFixed(3),continuity.toFixed(3)]);
+ riverSamples.push([ts,meanH.toFixed(4),meanV.toFixed(4),dis.toFixed(4),riverId.toFixed(4)]);
+ identitySamples.push([ts,animal.identity.toFixed(4),riverId.toFixed(4),continuity.toFixed(4),observer.toFixed(4)]);
+ weatherSamples.push([ts,rain.toFixed(3),wind.toFixed(3),temp.toFixed(1)]);
+ for(let c of creatures){
+  speciesSamples.push([ts,c.group,c.name,c.tag||'',c.sex,c.sex==='child'?'child':'adult',c.x.toFixed(3),c.y.toFixed(3),c.mode,(c.energy/c.energyMax*100).toFixed(2),c.energyMax,c.hydration.toFixed(2),c.identity.toFixed(3),c.traits.scale.toFixed(3),c.traits.pace.toFixed(3),c.traits.drain.toFixed(3),c.traits.hydro.toFixed(3),c.traits.bold,c.traits.variant]);
+ }
+ let bDist=Math.hypot(animal.x-companions[0].x,animal.y-companions[0].y),cDist=Math.hypot(animal.x-companions[1].x,animal.y-companions[1].y);
+ interactionSamples.push([ts,bDist.toFixed(3),cDist.toFixed(3),(bDist<8?'near':'apart'),(cDist<8?'near':'apart')]);
+ }
+ updateDayNight();
+ updateUI();
+}
+function updateUI(){
+ $('rainV').textContent=rain.toFixed(2);$('windV').textContent=wind.toFixed(2);$('tempV').textContent=temp.toFixed(1)+' °C';
+ $('depth').textContent=(last.meanH||0).toFixed(3)+' m*';$('speed').textContent=(last.meanV||0).toFixed(3)+' m/s*';$('flow').textContent=(last.dis||0).toFixed(4)+' *';
+ $('mode').textContent=animal.mode+(animal.activity?' · '+animal.activity:'');$('energy').textContent=(animal.energy/animal.energyMax*100).toFixed(1)+'%';$('hydration').textContent=animal.hydration.toFixed(1)+'%';
+ $('interaction').textContent=Math.hypot(animal.x-companions[0].x,animal.y-companions[0].y).toFixed(1)+' grid units';$('cid').textContent=(animal.identity*100).toFixed(1)+'%';$('rid').textContent=((last.riverId||.8)*100).toFixed(1)+'%';$('continuity').textContent=(last.continuity||.97).toFixed(2);$('observer').textContent=(last.observer||.84).toFixed(2);
+ let frozen=temp<=0;
+ if(frozen!==iceOn){iceOn=frozen;if(frozen){waterMat.color.set(0xcfe8f2);waterMat.roughness=.35;waterMat.opacity=.96;}else{waterMat.color.set(0x26a9bd);waterMat.roughness=.16;waterMat.opacity=.88;}}
+ $('surface').textContent=frozen?'ICE — frozen (visual only)':(rain>0?'Rain on open water':'Open water');
+}
+function sexLabel(c){return c.sex==='male'?'M adult':c.sex==='female'?'F adult':'child';}
+function traitStr(c){let t=c.traits;return t.scale.toFixed(2)+'× · p'+t.pace.toFixed(2)+' · d'+t.drain.toFixed(2)+' · h'+t.hydro.toFixed(2)+' · '+(t.bold==='high'?'bold':'shy')+' · v'+t.variant;}
+function renderRoster(){
+ let html='';
+ for(let def of GROUP_DEFS){
+  html+='<div style="margin-top:7px;color:var(--accent);font-weight:600">'+def.label+'</div>';
+  for(let c of creatures.filter(x=>x.group===def.group)){
+   let act=c.activity?' · '+c.activity:'';
+   html+='<div style="margin:3px 0"><b style="color:var(--ink)">'+c.name+'</b> <span>'+(c.tag||'')+' · '+sexLabel(c)+'</span><br>'+c.mode+act+' · E '+(c.energy/c.energyMax*100).toFixed(0)+'% · H '+c.hydration.toFixed(0)+'%<br><span style="opacity:.8">traits: '+traitStr(c)+'</span></div>';
+  }
+ }
+ $('roster').innerHTML=html;
+}
+function renderBuildStatus(){
+ let html='';
+ for(let c of creatures.filter(x=>x.group==='land'&&x.sex!=='child')){
+  let b=c.build;
+  let lodge=b.lodge.built?'built ✓':(b.state==='lodge'?'building '+Math.round(b.lodge.progress*100)+'%':'not started');
+  html+='<div style="margin:4px 0"><b style="color:var(--ink)">'+c.name+'</b> dam: '+b.segments.length+'/'+DAM_SEGMENTS_MAX+' segments · sticks '+b.sticks+'<br>lodge: '+lodge+' · upstream depth '+upstreamDepth(b).toFixed(2)+' m</div>';
+ }
+ $('buildStatus').innerHTML=html||'No building yet.';
+}
+function updatePerf(){
+ $('creatureSummary').textContent=creatures.length+' creatures · 5 families · resizable watershed · seasons & day/night';
+ $('creatureTitle').textContent='Creatures · 5 families · '+creatures.length+' total';
+ $('creatureCount').textContent=creatures.length;
+ $('cells').textContent=NN.toLocaleString();
+ $('waterVerts').textContent=(NX*NY).toLocaleString();
+ $('plantCount').textContent=plants.length.toLocaleString();
+ $('fps').textContent=fpsAvg.toFixed(1);
+ $('frameMs').textContent=(1000/Math.max(fpsAvg,.01)).toFixed(1)+' ms';
+ $('drawCalls').textContent=renderer.info.render.calls;
+}
+function setMode(m){viewMode=m;['cinematic','science','research'].forEach(id=>$(id).classList.toggle('active',id===m));scene.fog.near=m==='cinematic'?fogNear:fogNear*1.6;scene.fog.far=m==='cinematic'?fogFar:fogFar*1.5;waterMesh.material.wireframe=m==='research';}
+function animate(){
+ requestAnimationFrame(animate);let raw=clock.getDelta();let dt=Math.min(raw,.035);
+ if(raw>0&&raw<.5){fpsAvg=fpsAvg*.95+(1/raw)*.05;if(benchRunning)benchSamples.push(1/raw);}
+ if(running){elapsed+=dt;frame++;fluidStep(dt);updateCreatures(dt);updateVisual(dt);updateRain(dt);updateSnow(dt);}
+ renderer.render(scene,camera);
+ updateTags();
+}
+function csv(name,headers,rows){let q=v=>'"'+String(v??'').replaceAll('"','""')+'"';let data=[headers,...rows].map(r=>r.map(q).join(',')).join('\r\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/csv'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+function placeCreatures(){
+ for(let c of creatures){
+  c.x=c.fx*NX;c.y=c.fy*NY;c.vx=0;c.vy=0;c.vz=0;c.z=0;c.alt=c.group==='fly'?8+Math.random()*4:0;c.heading=0;c.tx=0;c.ty=0;
+ }
+}
+function rebuildWorld(nx,ny){
+ NX=nx;NY=ny;NN=NX*NY;updateRiverParams();
+ allocFields();allocDamMask();initFields();
+ buildTerrain();buildWater();buildGround();pickMapBuildingSpot();makePlants();placeMapBuilding();buildRain();buildSnow();
+ resetBuilding();syncRoster();placeCreatures();
+ creatures.forEach(c=>{if(c.group==='land'&&c.sex!=='child')initBuild(c);});
+ elapsed=0;frame=0;samples=[];riverSamples=[];identitySamples=[];weatherSamples=[];ablationSamples=[];speciesSamples=[];interactionSamples=[];buildingEvents=[];
+ $('mapSize').value=nx+'x'+ny;
+ fitCamera();
+ applySeason(false);
+ updatePerf();
+}
+function regenerateTerrain(){
+ reseed(terrainSeed);updateRiverParams();
+ initFields();buildTerrain();buildWater();pickMapBuildingSpot();makePlants();placeMapBuilding();
+ if(damMask)damMask.fill(0);
+ resetBuilding();
+ creatures.forEach(c=>{if(c.group==='land'&&c.sex!=='child')initBuild(c);});
+ elapsed=0;frame=0;samples=[];riverSamples=[];identitySamples=[];weatherSamples=[];ablationSamples=[];speciesSamples=[];interactionSamples=[];buildingEvents=[];
+ applySeason(false);
+}
+function renderBenchTable(results,done){
+ let best60=null,best30=null;
+ for(let r of results){if(r.avg>=60)best60=r;if(r.avg>=30)best30=r;}
+ let rows=results.map(r=>{
+  let verdict=r.avg>=60?'<span class="ok">≥60 FPS</span>':r.avg>=30?'<span class="warn">≥30 FPS</span>':'<span class="bad">&lt;30 FPS</span>';
+  return '<tr><td>'+r.nx+'×'+r.ny+'</td><td class="num">'+r.cells.toLocaleString()+'</td><td class="num">'+r.avg.toFixed(1)+'</td><td class="num">'+r.min.toFixed(1)+'</td><td>'+verdict+'</td></tr>';}).join('');
+ $('benchTableWrap').innerHTML='<table id="benchTable"><tr><th>Map</th><th>Cells</th><th>Avg FPS</th><th>Min FPS</th><th>Verdict</th></tr>'+rows+'</table>';
+ $('benchOut').innerHTML=done
+  ?('Largest map holding <b>≥60 FPS</b>: '+(best60?best60.nx+'×'+best60.ny+' ('+best60.avg.toFixed(1)+' FPS)':'none of the presets')+'<br>Largest map holding <b>≥30 FPS</b>: '+(best30?best30.nx+'×'+best30.ny+' ('+best30.avg.toFixed(1)+' FPS)':'none of the presets')+'<br><span class="small">Measured on this machine, 10 s per size, sim running. Your previous map size was restored.</span>')
+  :'Running…';
+}
+async function runBenchmark(){
+ if(benchRunning)return;benchRunning=true;benchCancel=false;
+ $('bench').disabled=true;$('bench').textContent='Benchmark running…';
+ $('benchStop').disabled=false;$('benchStop').textContent='Stop benchmark';
+ let prevSize=[NX,NY],wasRunning=running;running=true;$('pause').textContent='Pause';$('status').textContent='● RUNNING';
+ let results=[],cancelled=false;
+ for(let [nx,ny] of SIZE_PRESETS){
+  if(benchCancel){cancelled=true;break;}
+  $('benchOut').textContent='Testing '+nx+'×'+ny+'…';
+  rebuildWorld(nx,ny);
+  if(!await waitBench(1500)){cancelled=true;break;}
+  benchSamples=[];
+  if(!await waitBench(10000)){cancelled=true;break;}
+  let fs=benchSamples.filter(f=>f>0&&f<500);
+  let avg=fs.length?fs.reduce((a,b)=>a+b,0)/fs.length:0;
+  let min=fs.length?Math.min(...fs):0;
+  results.push({nx,ny,cells:nx*ny,avg,min});
+  renderBenchTable(results,false);
+ }
+ // Always restore the previous map size and running state — completed or
+ // cancelled, the sim is left clean with no half-run leftovers.
+ rebuildWorld(prevSize[0],prevSize[1]);
+ running=wasRunning;$('pause').textContent=running?'Pause':'Resume';$('status').textContent=running?'● RUNNING':'Ⅱ PAUSED';
+ if(cancelled){
+  if(results.length)renderBenchTable(results,false);else $('benchTableWrap').innerHTML='';
+  $('benchOut').innerHTML='Benchmark cancelled — partial results above. Your previous map size was restored.';
+ }else renderBenchTable(results,true);
+ benchRunning=false;$('bench').disabled=false;$('bench').textContent='Run size benchmark';
+ $('benchStop').disabled=true;$('benchStop').textContent='Stop benchmark';
+}
+$('pause').onclick=()=>{running=!running;$('pause').textContent=running?'Pause':'Resume';$('status').textContent=running?'● RUNNING':'Ⅱ PAUSED';};
+$('reset').onclick=()=>{initFields();resetCreatures();elapsed=0;frame=0;samples=[];riverSamples=[];identitySamples=[];weatherSamples=[];ablationSamples=[];speciesSamples=[];interactionSamples=[];buildingEvents=[];};
+$('cinematic').onclick=()=>setMode('cinematic');$('science').onclick=()=>setMode('science');$('research').onclick=()=>setMode('research');
+$('rain').onclick=()=>{rain=rain>.001?0:.3;$('rainS').value=rain;$('rain').textContent=rain?precipName()+': on':precipName()+': off';};
+$('rainS').oninput=e=>{rain=+e.target.value;$('rain').textContent=rain?precipName()+': on':precipName()+': off';};
+$('windS').oninput=e=>wind=+e.target.value;$('tempS').oninput=e=>temp=+e.target.value;
+$('mapSize').onchange=e=>{let [nx,ny]=e.target.value.split('x').map(Number);rebuildWorld(nx,ny);};
+$('seedIn').onchange=e=>{terrainSeed=+e.target.value||1;};
+$('seedRandom').onclick=()=>{terrainSeed=Math.floor(Math.random()*99999)+1;$('seedIn').value=terrainSeed;regenerateTerrain();};
+$('ampS').oninput=e=>{terrainAmp=+e.target.value;$('ampV').textContent=terrainAmp.toFixed(1)+'×';};
+$('octS').onchange=e=>{terrainOctaves=+e.target.value;};
+$('biasS').oninput=e=>{terrainBias=+e.target.value;$('biasV').textContent=(terrainBias>0?'+':'')+terrainBias.toFixed(1)+(terrainBias>.3?' · mountains':terrainBias<-.3?' · valley':' · neutral');};
+$('regen').onclick=()=>regenerateTerrain();
+$('bench').onclick=()=>runBenchmark();
+$('benchStop').onclick=()=>{benchCancel=true;$('benchStop').disabled=true;$('benchStop').textContent='Stopping…';};
+$('batch').onclick=()=>{let ids=['a11','a12','a13','a14','a15'];let labels=['A11 skeleton stability','A12 shape stability','A13 pressure gradient','A14 body cohesion','A15 physical translation'];let saved=ids.map(id=>$(id).checked);for(let i=0;i<5;i++){ids.forEach((id,j)=>$(id).checked=i===j);let c=clamp(.97-(i===0?.2:0)-(i===1?.28:0)-(i===3?.18:0)-(i===4?.08:0),0,1),o=clamp((i===4?.32:.84)-(i===1||i===3?.1:0),0,1);ablationSamples.push([labels[i],'isolated',c.toFixed(3),o.toFixed(3)]);}ids.forEach((id,j)=>$(id).checked=saved[j]);$('log').textContent='Isolated proxy runs recorded.\n'+ablationSamples.slice(-5).map(r=>r.join(' | ')).join('\n')+'\nExport CSVs to save results.';};
+$('export').onclick=()=>{csv('telemetry.csv',['time_s','creature_x_grid','creature_y_grid','mode','energy_pct','hydration_pct','mean_depth_m_proxy','mean_speed_proxy','rain','wind','continuity_proxy'],samples);csv('river_metrics.csv',['time_s','mean_depth_proxy','mean_speed_proxy','discharge_proxy','river_identity'],riverSamples);csv('identity_metrics.csv',['time_s','creature_identity','river_identity','continuity','observer_confidence'],identitySamples);csv('weather_metrics.csv',['time_s','rain','wind','temperature_c'],weatherSamples);csv('ablation_results.csv',['experiment','run_type','continuity_proxy','observer_confidence_proxy'],ablationSamples);csv('species_metrics.csv',['time_s','group','name','tag','sex','age','x_grid','y_grid','locomotion','energy_pct','energy_max','hydration_pct','identity_proxy','scale','pace','drain_mult','hydro_mult','boldness','variant'],speciesSamples);csv('interaction_metrics.csv',['time_s','beaver_b_distance','beaver_c_distance','b_relation','c_relation'],interactionSamples);csv('building.csv',['time_s','creature','tag','event','detail'],buildingEvents);};
+window.addEventListener('resize',()=>{if(!renderer)return;camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();renderer.setSize(stage.clientWidth,stage.clientHeight);});
+// Stage 9 state — declared here, before the startup line, so applySeason()
+// and the first animation frame can read them (module top-level statements
+// run in order; declarations further down would still be in the TDZ).
+let season=.3,nightF=0,nightPace=1;
+const SEASON_ANCHORS=[.125,.375,.625,.875];
+const SEASON_PALETTES={
+ leaf1:[0x5a9e4b,0x286b3e,0xc96a2e,0x5d4037],
+ leaf2:[0x6ab04c,0x43894a,0xd18a2e,0x6d5a4a],
+ leaf3:[0x8bc34a,0x78a653,0xe0a52e,0x8d8577],
+ shrub:[0x6ab04c,0x477d43,0xb8860b,0x6d5a4a],
+ reed:[0x9ccc65,0x91a94c,0xc2a23a,0x9e9d8a],
+ flower:[0xf2d16b,0xe6c56b,0xd18a2e,0xcfc8b8],
+ willow:[0xc2d98a,0xa8c686,0xd8b93a,0x8a7a5a],
+ lily:[0x5aa860,0x3f8f4f,0x8a9a3a,0x6a7a6a],
+ fern:[0x4a9a58,0x2e7d46,0xb8860b,0x5a6a4a],
+ cattailStalk:[0x7a9a4a,0x5a7a3a,0xa89a3a,0x8a8577],
+};
+let snowPoints=null,snowDrops=[];
+const DAY_BG=new THREE.Color(0x9bc9d8),NIGHT_BG=new THREE.Color(0x0a1020),DUSK_BG=new THREE.Color(0x4a3040);
+const DAY_FOG=new THREE.Color(0xb4c9bd),NIGHT_FOG=new THREE.Color(0x0d1420);
+const SUN_DAY=new THREE.Color(0xffe2ad),SUN_DUSK=new THREE.Color(0xff8c42),MOON=new THREE.Color(0x8fa3cc);
+let sunMesh=null,moonMesh=null;
+// ============ Step 3.4: the sandbox API (M22) — the sandbox's door ============
+// pick / hold / snapshot / place-back, exposed as window.SandboxAPI for
+// same-origin callers (the HUD pattern — the workbench iframes this page
+// and calls in through the window). The API is pure logic in
+// sandbox-api.js; this block only wires it to the live sim. The wire-up
+// is try/catch-guarded and the sim never depends on the API — if the
+// wire-up ever fails, the sandbox still boots and runs.
+// ============ Stage 18: the raycast pick (Q7 — ruled by Lloyd 2026-11-23) ====
+// pickGround(clientX, clientY): a true THREE raycast from a screen point
+// (viewport client coords in this page's space — the click's clientX/Y)
+// to the ground point under it, in sim coords. The ray hits terrainMesh
+// ONLY — never the floor plane at y=-1.25 (a click off the map must
+// refuse, not name a floor point), never water or creatures (a click
+// names the ground, and the terrain IS the ground as rendered).
+// Returns {ok:true, x, y, height} or a named refusal: BAD_PICK
+// (non-finite coords), NOT_READY (the scene is not built yet — a pick
+// before initScene), NO_GROUND_HIT (the ray misses the terrain — sky,
+// horizon, or off the map). The sim mapping is the sandbox's own:
+// threeX=(x-NX/2)*DX, threeZ=(y-NY/2)*DX (see the creature rigs), so
+// the inverse is x=threeX/DX+NX/2, y=threeZ/DX+NY/2. The terrain mesh
+// carries an identity transform (the geometry is pre-rotated), so no
+// matrix update is needed before the raycast.
+function pickGround(clientX,clientY){
+ if(typeof clientX!=='number'||!Number.isFinite(clientX)||typeof clientY!=='number'||!Number.isFinite(clientY)){
+  return {ok:false,code:'BAD_PICK',error:'pick coordinates must be finite numbers, got ('+String(clientX)+', '+String(clientY)+')'};
+ }
+ if(!renderer||!camera||!terrainMesh){
+  return {ok:false,code:'NOT_READY',error:'the scene is not built yet — the sandbox is still booting'};
+ }
+ const rect=renderer.domElement.getBoundingClientRect();
+ if(!rect||rect.width<=0||rect.height<=0){
+  return {ok:false,code:'NOT_READY',error:'the canvas has no size yet — the sandbox is still booting'};
+ }
+ const ndc=new THREE.Vector2(
+  ((clientX-rect.left)/rect.width)*2-1,
+  -((clientY-rect.top)/rect.height)*2+1);
+ const raycaster=new THREE.Raycaster();
+ raycaster.setFromCamera(ndc,camera);
+ const hits=raycaster.intersectObject(terrainMesh,false);
+ if(!hits.length){
+  return {ok:false,code:'NO_GROUND_HIT',error:'the click misses the terrain — it is on the sky or off the map; click on the ground'};
+ }
+ const p=hits[0].point;
+ return {ok:true,x:p.x/DX+NX/2,y:p.z/DX+NY/2,height:p.y};
+}
+let sandboxAPI=null;
+try{
+ sandboxAPI=createSandboxAPI({
+  getCreatures:()=>creatures,
+  getWorld:()=>({terrainSeed,NX,NY,elapsed,season,rain,wind,temp,running}),
+  recolor:(c)=>recolorVariant(c),
+  rescale:(c)=>{if(c.rig)c.rig.root.scale.setScalar(c.scaleEff);},
+  pickGround:pickGround,
+ });
+ window.SandboxAPI=sandboxAPI;
+}catch(e){console.error('SandboxAPI failed to wire (the sandbox still runs):',e);}
+try{updateRiverParams();reseed(terrainSeed);allocFields();allocDamMask();initFields();initScene();applySeason();clock=new THREE.Clock();$('status').textContent='● RUNNING';setInterval(updatePerf,250);setInterval(()=>{renderRoster();renderBuildStatus();},500);updatePerf();renderRoster();renderBuildStatus();animate();}catch(e){$('loading').textContent='Startup error: '+e.message;console.error(e);}
+// ============ Stage 9: seasons + day/night ============
+// Season: one slider spans the year, 0-1. Spring 0-.25, Summer .25-.5,
+// Autumn .5-.75, Winter .75-1. It drives the temperature baseline,
+// vegetation colors, ground snow, and precipitation type (snow in winter).
+function isWinter(){return season>=.75;}
+function precipName(){return isWinter()?'Snow':'Rain';}
+function seasonName(){return season<.25?'Spring':season<.5?'Summer':season<.75?'Autumn':'Winter';}
+function tempBaseline(s){return 12+14*Math.cos((s-.375)*Math.PI*2);}
+function snowAmount(){if(!isWinter())return 0;let w=(season-.75)/.25;return .6+.4*Math.sin(w*Math.PI);}
+function seasonColor(hexes){
+ let s=season,a=SEASON_ANCHORS;
+ if(s<a[0]){let f=(s-(a[3]-1))/(a[0]-(a[3]-1));return new THREE.Color(hexes[3]).lerp(new THREE.Color(hexes[0]),f);}
+ if(s>=a[3]){let f=(s-a[3])/((a[0]+1)-a[3]);return new THREE.Color(hexes[3]).lerp(new THREE.Color(hexes[0]),f);}
+ for(let i=0;i<3;i++){if(s>=a[i]&&s<a[i+1]){let f=(s-a[i])/(a[i+1]-a[i]);return new THREE.Color(hexes[i]).lerp(new THREE.Color(hexes[i+1]),f);}}
+ return new THREE.Color(hexes[0]);
+}
+function recolorTerrain(snow){
+ if(!terrainMesh)return;
+ let attr=terrainMesh.geometry.attributes.color;
+ let c=new THREE.Color(),snowC=new THREE.Color(0xf2f6f8);
+ for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){
+  let k=j*NX+i,z=bed[at(i,j)],t=clamp((z-.1)/4.8,0,1);
+  c.setHSL(.27-t*.055,.34+t*.12,.29+t*.16);
+  if(snow>0&&H[k]<=.3){let s=snow*(.45+.55*clamp((z-.6)/1.2,0,1));c.lerp(snowC,s);}
+  attr.setXYZ(k,c.r,c.g,c.b);
+ }
+ attr.needsUpdate=true;
+}
+function applySeason(setTemp=true){
+ if(setTemp){temp=tempBaseline(season);$('tempS').value=temp;}
+ $('seasonName').textContent=seasonName()+' · '+(season*100).toFixed(0)+'%';
+ for(let key in SEASON_PALETTES)plantMats[key].color.copy(seasonColor(SEASON_PALETTES[key]));
+ let snow=snowAmount();
+ if(floorMesh)floorMesh.material.color.set(0x344d36).lerp(new THREE.Color(0xe8eef2),snow);
+ recolorTerrain(snow);
+ $('rain').textContent=rain?precipName()+': on':precipName()+': off';
+}
+$('seasonS').oninput=e=>{season=+e.target.value;applySeason();};
+// Snow: the winter form of precipitation — slow drifting flakes instead of
+// fast rain streaks. Same precipitation control, type follows the season.
+function buildSnow(){
+ if(snowPoints){scene.remove(snowPoints);snowPoints.geometry.dispose();snowPoints.material.dispose();}
+ let count=600,positions=new Float32Array(count*3);
+ snowPoints=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({color:0xffffff,size:.22,transparent:true,opacity:.9,sizeAttenuation:true}));
+ snowPoints.geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+ snowPoints.visible=false;snowPoints.frustumCulled=false;scene.add(snowPoints);
+ snowDrops=[];for(let i=0;i<count;i++)snowDrops.push({x:(Math.random()-.5)*NX*DX,y:Math.random()*28,z:(Math.random()-.5)*NY*DX,s:.8+Math.random()*1.2,ph:Math.random()*6.28});
+}
+function updateSnow(dt){
+ if(!snowPoints)return;
+ let snowing=isWinter()&&rain>0;
+ snowPoints.visible=snowing;
+ if(!snowing)return;
+ let pos=snowPoints.geometry.attributes.position;
+ for(let i=0;i<snowDrops.length;i++){let d=snowDrops[i];d.y-=d.s*dt;if(d.y<0)d.y=26+Math.random()*4;pos.setXYZ(i,d.x+Math.sin(elapsed*.8+d.ph)*.6,d.y,d.z);}
+ pos.needsUpdate=true;
+}
+// Day/night: one full cycle is 1 real hour (150 sim-seconds per hour).
+// Sun angle, light color/level, sky and fog all move with the time of day.
+// Creature rule (the only one): at night, pace x0.7 and rest is preferred.
+function nightRest(c){return nightF>.5&&c.energy<.5*c.energyMax;}
+function updateDayNight(){
+ let tod=(9+elapsed/150)%24;
+ let sunAngle=(tod-6)/12*Math.PI;
+ let dayF=clamp(Math.sin(sunAngle)*1.5+.25,0,1);
+ let duskF=Math.max(Math.exp(-Math.pow(tod-6,2)/3),Math.exp(-Math.pow(tod-18,2)/3));
+ nightF=1-dayF;
+ nightPace=1-.3*nightF;
+ let dist=Math.hypot(NX*DX,NY*DX),R=dist*2.2+60;
+ if(!sunMesh){sunMesh=new THREE.Mesh(new THREE.SphereGeometry(2.6,12,10),new THREE.MeshBasicMaterial({color:0xffdd55,fog:false}));scene.add(sunMesh);}
+ if(!moonMesh){moonMesh=new THREE.Mesh(new THREE.SphereGeometry(1.8,12,10),new THREE.MeshBasicMaterial({color:0xdde4ee,fog:false}));scene.add(moonMesh);}
+ sunMesh.visible=dayF>.02;
+ sunMesh.position.set(Math.cos(sunAngle)*R,Math.max(Math.sin(sunAngle),.02)*R*.7+8,-R*.35);
+ let moonAngle=(tod-18)/12*Math.PI;
+ moonMesh.visible=nightF>.4;
+ moonMesh.position.set(Math.cos(moonAngle)*R,Math.max(Math.sin(moonAngle),.02)*R*.7+8,-R*.35);
+ hemiLight.intensity=.5+1.7*dayF;
+ sunLight.intensity=.25+2.85*dayF;
+ sunLight.color.copy(MOON).lerp(SUN_DAY,dayF).lerp(SUN_DUSK,duskF*.7);
+ sunLight.position.set(Math.cos(sunAngle)*120,Math.max(Math.sin(sunAngle),.12)*120+10,50);
+ scene.background.copy(NIGHT_BG).lerp(DAY_BG,dayF).lerp(DUSK_BG,duskF*.45);
+ scene.fog.color.copy(NIGHT_FOG).lerp(DAY_FOG,dayF);
+ let hh=Math.floor(tod),mm=Math.floor((tod-hh)*60);
+ let phase=tod<5?'Night':tod<8?'Dawn':tod<17?'Day':tod<20?'Dusk':'Night';
+ $('tod').textContent=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+' · '+phase;
+}
+</script>
+</body></html>
