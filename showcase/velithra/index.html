@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veli'Thra qo'choH — Interactive Demo | Crumbs Vault Showcase</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a1211;
+    color: #e9f1ec;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.5;
+    padding-bottom: 140px;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 28px 20px 40px; }
+  .back { color: #93aca3; text-decoration: none; font-size: .92rem; }
+  .back:hover { color: #e9f1ec; }
+  .kicker {
+    color: #93aca3; font-size: 13px; font-weight: 700;
+    letter-spacing: .28em; text-transform: uppercase; margin: 18px 0 10px;
+  }
+  h1 { font-size: clamp(1.8rem, 5.5vw, 2.8rem); line-height: 1.1; font-weight: 800; margin-bottom: 12px; }
+  .intro { color: #93aca3; max-width: 640px; margin-bottom: 10px; }
+  .intro b { color: #e9f1ec; }
+  .howto {
+    background: #14211f; border: 1px solid rgba(143,227,176,.55);
+    border-radius: 22px; padding: 20px 22px; margin: 20px 0 28px;
+  }
+  .howto h2 { font-size: 1.1rem; margin-bottom: 6px; }
+  .howto p { color: #93aca3; }
+  .howto p b { color: #e9f1ec; }
+  .howto .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .btn {
+    display: inline-block; min-height: 44px; line-height: 44px;
+    background: #8fe3b0; color: #06231a; font-weight: 800; font-size: .95rem;
+    text-decoration: none; padding: 0 20px; border-radius: 999px; border: none; cursor: pointer;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn.ghost { background: transparent; color: #e9f1ec; border: 1px solid rgba(233,241,236,.4); }
+  .navrow { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
+  .navpill {
+    background: #14211f; border: 1px solid rgba(233,241,236,.25); color: #e9f1ec;
+    text-decoration: none; padding: 9px 18px; border-radius: 999px; font-weight: 700; font-size: .92rem;
+  }
+  .hero {
+    background: linear-gradient(135deg, #14211f, #06231a);
+    border: 1px solid rgba(233,241,236,.15); border-radius: 22px;
+    padding: 28px; margin-bottom: 22px; cursor: grab;
+  }
+  .hero h2 { font-size: 1.5rem; margin-bottom: 8px; }
+  .hero p { color: #93aca3; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 22px; }
+  .fcard {
+    background: #14211f; border: 1px solid rgba(233,241,236,.12);
+    border-radius: 22px; padding: 22px; cursor: grab;
+  }
+  .fcard h3 { font-size: 1.15rem; margin-bottom: 6px; }
+  .fcard p { color: #93aca3; margin-bottom: 14px; font-size: .95rem; }
+  .minibtn {
+    background: transparent; color: #8fe3b0; border: 1px solid rgba(143,227,176,.6);
+    font-weight: 700; font-size: .9rem; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  }
+  .panel {
+    background: linear-gradient(120deg, #1d3a2f, #14211f 60%, #2a1d3a);
+    border: 1px solid rgba(233,241,236,.15); border-radius: 22px;
+    padding: 26px; margin-bottom: 22px; cursor: grab;
+  }
+  .panel h3 { margin-bottom: 6px; }
+  .panel p { color: #93aca3; }
+  .artrow { display: flex; gap: 24px; align-items: center; margin-bottom: 22px; flex-wrap: wrap; }
+  .artrow svg { cursor: grab; }
+  .artrow span { color: #93aca3; font-size: .92rem; }
+  .formrow {
+    background: #14211f; border: 1px solid rgba(233,241,236,.12);
+    border-radius: 22px; padding: 22px; margin-bottom: 22px;
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  }
+  .formrow input, .formrow select {
+    background: #0a1211; color: #e9f1ec; border: 1px solid rgba(233,241,236,.3);
+    border-radius: 12px; padding: 11px 14px; font-size: .95rem; font-family: inherit;
+  }
+  .formrow input { flex: 1 1 200px; }
+  footer { color: #93aca3; font-size: .92rem; padding-top: 18px; border-top: 1px solid rgba(233,241,236,.12); }
+  footer a { color: #8fe3b0; }
+  /* Showcase rule: no downloads on any exhibit. Veli'Thra's own
+     Export layout (JSON) and Save snapshot (PNG) buttons are hidden
+     on this page — the engine's other tools (drag, resize, recolor,
+     rename, share link, import) all stay live. */
+  #vt-export-btn, #vt-snapshot-btn { display: none !important; }
+</style>
+</head>
+<body>
+<!-- Every demo object carries an id on purpose: Veli'Thra keys id-less
+     elements by DOM path, and a moved element leaves its path behind —
+     so the engine's resist check would compare the wrong element after
+     a reload and cry wolf ("this site keeps undoing changes"). id:
+     keys resolve by getElementById, which survives re-parenting. Do
+     not strip the ids. -->
+<div class="wrap" id="demo-wrap">
+  <a class="back" id="demo-back-top" href="/showcase/">&larr; Back to the Showcase</a>
+  <div class="kicker">Crumbs Vault Showcase &middot; Exhibit 2</div>
+  <h1>Veli'Thra qo'choH</h1>
+  <p class="intro"><b>Reality, rearranged.</b> Veli'Thra lets you reach into any page and move its pieces &mdash; drag them, resize them, recolor them, rename them. This page <b>is</b> the demo: the real Veli'Thra is running on it right now.</p>
+
+  <div class="howto" id="demo-howto">
+    <h2>Try it &mdash; everything below is movable</h2>
+    <p><b>Drag</b> any card, button, link, picture, or field to move it. <b>Tap one</b> to open its editor and resize, recolor, or rename it. Your arrangement saves to <b>your own browser</b> &mdash; come back and it's still where you left it. Veli'Thra runs on <b>this page only</b>: nothing is installed anywhere.</p>
+    <div class="row">
+      <button class="btn" id="reset-demo" type="button">Reset the demo</button>
+      <a class="btn ghost" id="demo-back-btn" href="/showcase/">Back to the Showcase</a>
+    </div>
+  </div>
+
+  <div class="navrow" id="demo-navrow">
+    <a class="navpill" id="demo-nav-home" href="#home">Home</a>
+    <a class="navpill" id="demo-nav-exhibits" href="#exhibits">Exhibits</a>
+    <a class="navpill" id="demo-nav-dragons" href="#dragons">Dragons</a>
+    <a class="navpill" id="demo-nav-about" href="#about">About</a>
+  </div>
+
+  <div class="hero" id="demo-hero" role="button" tabindex="0" title="Drag me">
+    <h2>The hero card</h2>
+    <p>This whole card is draggable &mdash; grab it anywhere and pull it somewhere new. The button inside it moves on its own, too.</p>
+    <button class="btn" id="demo-hero-btn" type="button">A button inside the hero</button>
+  </div>
+
+  <div class="grid" id="demo-grid">
+    <div class="fcard" id="demo-card-drag" role="button" tabindex="0" title="Drag me">
+      <h3>Drag</h3>
+      <p>Pick a piece up and put it where you want it. It stays there &mdash; even after a reload.</p>
+      <button class="minibtn" id="demo-minibtn-drag" type="button">Try dragging me</button>
+    </div>
+    <div class="fcard" id="demo-card-resize" role="button" tabindex="0" title="Drag me">
+      <h3>Resize</h3>
+      <p>Tap a piece to open its editor, then make it bigger, smaller, wider &mdash; your call.</p>
+      <button class="minibtn" id="demo-minibtn-resize" type="button">Tap a card to edit it</button>
+    </div>
+    <div class="fcard" id="demo-card-recolor" role="button" tabindex="0" title="Drag me">
+      <h3>Recolor</h3>
+      <p>The editor's color tools restyle any piece. The page becomes yours, one piece at a time.</p>
+      <button class="minibtn" id="demo-minibtn-recolor" type="button">Make it yours</button>
+    </div>
+  </div>
+
+  <div class="panel" id="demo-panel" role="button" tabindex="0" title="Drag me">
+    <h3>The gradient panel</h3>
+    <p>Even the big blocks move. Drag this one under the cards, over the hero &mdash; wherever it looks right to you.</p>
+  </div>
+
+  <div class="artrow" id="demo-artrow">
+    <svg id="demo-star" width="72" height="72" viewBox="0 0 72 72" role="img" aria-label="A mint star"><path d="M36 4 L44 26 L67 27 L48 41 L55 64 L36 50 L17 64 L24 41 L5 27 L28 26 Z" fill="#8fe3b0"/></svg>
+    <svg id="demo-circle" width="56" height="56" viewBox="0 0 56 56" role="img" aria-label="An orange circle"><circle cx="28" cy="28" r="26" fill="#ff8a4c"/></svg>
+    <span>Pictures move too &mdash; drag the star and the circle.</span>
+  </div>
+
+  <div class="formrow" id="demo-formrow">
+    <input id="demo-input" type="text" placeholder="A text field &mdash; drag me too" aria-label="Demo text field">
+    <select id="demo-select" aria-label="Demo dropdown">
+      <option>Pick one</option>
+      <option>Dragons</option>
+      <option>Rivers</option>
+      <option>Popcorn</option>
+    </select>
+    <button class="btn" id="demo-submit" type="button">Submit (does nothing)</button>
+  </div>
+
+  <footer>Veli'Thra qo'choH &middot; <a id="demo-footer-link" href="/showcase/">Crumbs Vault Showcase</a> &middot; your arrangement lives in your browser only.</footer>
+</div>
+
+<script>
+  // Reset the demo: clear only this page's demo layouts, then reload.
+  document.getElementById('reset-demo').addEventListener('click', function () {
+    try {
+      var drop = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('vt-demo:') === 0) drop.push(k);
+      }
+      drop.forEach(function (k) { localStorage.removeItem(k); });
+    } catch (e) { /* storage unavailable: reload anyway */ }
+    location.reload();
+  });
+</script>
+<script src="velithra-demo.min.js"></script>
+</body>
+</html>

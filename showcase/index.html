@@ -35,62 +35,47 @@
     margin-bottom: 36px;
   }
   .welcome em { color: #e9f1ec; font-style: normal; }
-  .card {
-    background: #14211f;
-    border: 1px solid rgba(233,241,236,.12);
-    border-radius: 22px;
-    padding: 26px;
-    margin-bottom: 18px;
-  }
-  .card.featured { border-color: rgba(143,227,176,.55); }
-  .badge {
-    display: inline-block;
-    font-size: 12px;
+  /* Section headers: the Hugging Face shape — a colored bar over a
+     grid of items. The label carries the meaning; the color is
+     decoration only. */
+  .section { margin-bottom: 28px; }
+  .section-head {
+    font-size: 1.05rem;
     font-weight: 800;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    padding: 6px 13px;
-    border-radius: 999px;
+    letter-spacing: .02em;
+    color: #ffffff;
+    padding: 12px 18px;
+    border-radius: 14px;
     margin-bottom: 14px;
   }
-  .badge.mint { background: #8fe3b0; color: #06231a; }
-  .badge.line { border: 1px solid rgba(233,241,236,.35); color: #e9f1ec; }
-  .badge.muted { border: 1px solid rgba(147,172,163,.5); color: #93aca3; }
-  .card h2 { font-size: 1.55rem; line-height: 1.15; margin-bottom: 8px; }
-  .card p { color: #93aca3; margin-bottom: 20px; }
-  .card.featured p { color: #e9f1ec; font-size: 1.08rem; }
-  .note { font-size: .88rem; color: #93aca3; margin-top: 14px; }
-  .btn {
-    display: inline-block;
-    min-height: 46px;
-    line-height: 46px;
-    background: #8fe3b0;
-    color: #06231a;
-    font-weight: 800;
-    font-size: 1rem;
-    text-decoration: none;
-    padding: 0 24px;
-    border-radius: 999px;
-  }
-  .btn:active { transform: scale(.97); }
-  .btn.ghost {
-    background: transparent;
-    color: #e9f1ec;
-    border: 1px solid rgba(233,241,236,.4);
-  }
-  .btn.soon {
-    background: transparent;
-    color: #93aca3;
-    border: 1px dashed rgba(147,172,163,.55);
-    cursor: default;
-  }
+  .section-head.green { background: linear-gradient(90deg, #1d5c3a, #2e8b57); }
+  .section-head.blue { background: linear-gradient(90deg, #1d4e6b, #2b7a9e); }
+  .section-head.orange { background: linear-gradient(90deg, #7a3d1d, #b06a2e); }
+  .section-head.purple { background: linear-gradient(90deg, #4a2d6b, #6e4a9e); }
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 18px;
-    margin-bottom: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
   }
-  .grid .card { margin-bottom: 0; }
+  .pill {
+    display: block;
+    background: #14211f;
+    border: 1px solid rgba(233,241,236,.15);
+    border-radius: 16px;
+    padding: 18px 20px;
+    text-decoration: none;
+    color: #e9f1ec;
+    min-height: 44px;
+  }
+  .pill:active { transform: scale(.98); }
+  .pill b { display: block; font-size: 1.12rem; line-height: 1.25; margin-bottom: 4px; }
+  .pill span { display: block; color: #93aca3; font-size: .92rem; }
+  .pill.soon {
+    border-style: dashed;
+    border-color: rgba(147,172,163,.55);
+    cursor: default;
+  }
+  .pill.soon b { color: #93aca3; }
   footer {
     margin-top: 36px;
     padding-top: 22px;
@@ -107,38 +92,51 @@
   <h1>Welcome, welcome, one and all.</h1>
   <p class="welcome">This is the <em>Crumbs Vault Showcase</em> &mdash; where we&rsquo;re working every day to develop a future filled with entertainment, popcorn, and <em>ooo, look at that!</em></p>
 
-  <div class="card featured">
-    <span class="badge mint">Exhibit 1 &middot; Playable now</span>
-    <h2>Living River</h2>
-    <p>A living watershed in your browser. Fifteen creatures in five families, seasons and weather, dams and lodges &mdash; and a river that grows with the map. Step right up and watch it run.</p>
-    <a class="btn" href="/showcase/living-river/map-sandbox.html">Step right up &mdash; play the river</a>
-    <div class="note">Runs entirely in your browser. No download, no sign-up.</div>
+  <div class="section">
+    <div class="section-head green">Playable now</div>
+    <div class="grid">
+      <a class="pill" href="/showcase/living-river/map-sandbox.html">
+        <b>Living River</b>
+        <span>A living watershed in your browser &mdash; step right up and watch it run.</span>
+      </a>
+      <a class="pill" href="/showcase/velithra/">
+        <b>Veli&rsquo;Thra qo&rsquo;choH</b>
+        <span>Reality, rearranged &mdash; drag, resize, and recolor this page&rsquo;s pieces. Try it live.</span>
+      </a>
+    </div>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <span class="badge line">3D viewer</span>
-      <h2>Dragon Bench</h2>
-      <p>Dragons, side by side. Compare the pulls, spin them, see every angle.</p>
-      <a class="btn ghost" href="/3d-viewers/dragon-bench.html">Take a look</a>
+  <div class="section">
+    <div class="section-head blue">3D viewers</div>
+    <div class="grid">
+      <a class="pill" href="/3d-viewers/dragon-bench.html">
+        <b>Dragon Bench</b>
+        <span>Dragons, side by side. Compare the pulls, spin them, see every angle.</span>
+      </a>
+      <a class="pill" href="/3d-viewers/aetherion-dragon1-viewer.html">
+        <b>Aetherion</b>
+        <span>The crystal dragon, up close and turning in the light.</span>
+      </a>
     </div>
-    <div class="card">
-      <span class="badge line">3D viewer</span>
-      <h2>Aetherion</h2>
-      <p>The crystal dragon, up close and turning in the light.</p>
-      <a class="btn ghost" href="/3d-viewers/aetherion-dragon1-viewer.html">Take a look</a>
+  </div>
+
+  <div class="section">
+    <div class="section-head orange">The game</div>
+    <div class="grid">
+      <a class="pill" href="/crumbs-world/">
+        <b>Crumbs World</b>
+        <span>The game itself. Step through the front door and play.</span>
+      </a>
     </div>
-    <div class="card">
-      <span class="badge line">The game</span>
-      <h2>Crumbs World</h2>
-      <p>The game itself. Step through the front door and play.</p>
-      <a class="btn ghost" href="/crumbs-world/">Enter the world</a>
-    </div>
-    <div class="card">
-      <span class="badge muted">Coming soon</span>
-      <h2>Veli&rsquo;Thra</h2>
-      <p>Reach into any page and move it. The reality layer, coming soon to the Showcase.</p>
-      <span class="btn soon">Coming soon</span>
+  </div>
+
+  <div class="section">
+    <div class="section-head purple">Coming soon</div>
+    <div class="grid">
+      <div class="pill soon">
+        <b>More exhibits</b>
+        <span>More exhibits are being built every day.</span>
+      </div>
     </div>
   </div>
 

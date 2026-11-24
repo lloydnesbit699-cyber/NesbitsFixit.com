@@ -43,7 +43,7 @@ button{cursor:pointer}button:hover{border-color:var(--accent)}button.active{back
 <div class="controls">
 <button id="pause">Pause</button><button id="reset">Reset</button>
 <button id="cinematic" class="active">Cinematic</button><button id="science">Scientific</button><button id="research">Research</button>
-<button id="rain">Rain: off</button><button id="export">Export CSVs</button>
+<button id="rain">Rain: off</button>
 </div>
 <p class="small">Drag to orbit · scroll to zoom. Creatures in five families share the watershed — a beaver-like land family, fish, birds, bugs and two-legged walkers, each family an adult male, an adult female and a child with its own traits, and every family growing by one member at each bigger map size. The land adults gather sticks and build real dams that raise the water upstream, plus lodges that shelter their rest. Resize the map, reshape the terrain, turn the seasons and watch the day pass — the benchmark measures the largest map this machine holds at 30 and 60 FPS.</p>
 </section>
@@ -415,7 +415,7 @@ function memberSpec(def,i){
 function familyMembers(group){return creatures.filter(c=>c.group===group);}
 // Batch 1, Stage 3: every creature carries a persistent tag — FAMILY-##,
 // numbered in family order, so BEAVER-01 is always Beaver A. Tags are
-// deterministic across rebuilds and ride along in the CSV exports.
+// deterministic across rebuilds and ride along in the telemetry.
 const TAG_STEMS={land:'BEAVER',swim:'FISH',fly:'BIRD',bug:'BUG',humanoid:'HUMAN'};
 function equipCritter(c){
  c.rig=c.group==='land'?makeBeaverRig(c):c.group==='swim'?makeFishRig(c):c.group==='fly'?makeBirdRig(c):c.group==='bug'?makeBugRig(c):makeHumanoidRig(c);
@@ -1024,7 +1024,6 @@ function animate(){
  renderer.render(scene,camera);
  updateTags();
 }
-function csv(name,headers,rows){let q=v=>'"'+String(v??'').replaceAll('"','""')+'"';let data=[headers,...rows].map(r=>r.map(q).join(',')).join('\r\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/csv'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
 function placeCreatures(){
  for(let c of creatures){
   c.x=c.fx*NX;c.y=c.fy*NY;c.vx=0;c.vy=0;c.vz=0;c.z=0;c.alt=c.group==='fly'?8+Math.random()*4:0;c.heading=0;c.tx=0;c.ty=0;
@@ -1107,8 +1106,7 @@ $('biasS').oninput=e=>{terrainBias=+e.target.value;$('biasV').textContent=(terra
 $('regen').onclick=()=>regenerateTerrain();
 $('bench').onclick=()=>runBenchmark();
 $('benchStop').onclick=()=>{benchCancel=true;$('benchStop').disabled=true;$('benchStop').textContent='Stopping…';};
-$('batch').onclick=()=>{let ids=['a11','a12','a13','a14','a15'];let labels=['A11 skeleton stability','A12 shape stability','A13 pressure gradient','A14 body cohesion','A15 physical translation'];let saved=ids.map(id=>$(id).checked);for(let i=0;i<5;i++){ids.forEach((id,j)=>$(id).checked=i===j);let c=clamp(.97-(i===0?.2:0)-(i===1?.28:0)-(i===3?.18:0)-(i===4?.08:0),0,1),o=clamp((i===4?.32:.84)-(i===1||i===3?.1:0),0,1);ablationSamples.push([labels[i],'isolated',c.toFixed(3),o.toFixed(3)]);}ids.forEach((id,j)=>$(id).checked=saved[j]);$('log').textContent='Isolated proxy runs recorded.\n'+ablationSamples.slice(-5).map(r=>r.join(' | ')).join('\n')+'\nExport CSVs to save results.';};
-$('export').onclick=()=>{csv('telemetry.csv',['time_s','creature_x_grid','creature_y_grid','mode','energy_pct','hydration_pct','mean_depth_m_proxy','mean_speed_proxy','rain','wind','continuity_proxy'],samples);csv('river_metrics.csv',['time_s','mean_depth_proxy','mean_speed_proxy','discharge_proxy','river_identity'],riverSamples);csv('identity_metrics.csv',['time_s','creature_identity','river_identity','continuity','observer_confidence'],identitySamples);csv('weather_metrics.csv',['time_s','rain','wind','temperature_c'],weatherSamples);csv('ablation_results.csv',['experiment','run_type','continuity_proxy','observer_confidence_proxy'],ablationSamples);csv('species_metrics.csv',['time_s','group','name','tag','sex','age','x_grid','y_grid','locomotion','energy_pct','energy_max','hydration_pct','identity_proxy','scale','pace','drain_mult','hydro_mult','boldness','variant'],speciesSamples);csv('interaction_metrics.csv',['time_s','beaver_b_distance','beaver_c_distance','b_relation','c_relation'],interactionSamples);csv('building.csv',['time_s','creature','tag','event','detail'],buildingEvents);};
+$('batch').onclick=()=>{let ids=['a11','a12','a13','a14','a15'];let labels=['A11 skeleton stability','A12 shape stability','A13 pressure gradient','A14 body cohesion','A15 physical translation'];let saved=ids.map(id=>$(id).checked);for(let i=0;i<5;i++){ids.forEach((id,j)=>$(id).checked=i===j);let c=clamp(.97-(i===0?.2:0)-(i===1?.28:0)-(i===3?.18:0)-(i===4?.08:0),0,1),o=clamp((i===4?.32:.84)-(i===1||i===3?.1:0),0,1);ablationSamples.push([labels[i],'isolated',c.toFixed(3),o.toFixed(3)]);}ids.forEach((id,j)=>$(id).checked=saved[j]);$('log').textContent='Isolated proxy runs recorded.\n'+ablationSamples.slice(-5).map(r=>r.join(' | ')).join('\n');};
 window.addEventListener('resize',()=>{if(!renderer)return;camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();renderer.setSize(stage.clientWidth,stage.clientHeight);});
 // Stage 9 state — declared here, before the startup line, so applySeason()
 // and the first animation frame can read them (module top-level statements
