@@ -49,7 +49,7 @@ button{cursor:pointer}button:hover{border-color:var(--accent)}button.active{back
 <button id="cinematic" class="active">Cinematic</button><button id="science">Scientific</button><button id="research">Research</button>
 <button id="rain">Rain: off</button>
 </div>
-<p class="small">Drag to orbit · scroll to zoom. Creatures in five families share the watershed — a beaver-like land family, fish, birds, bugs and two-legged walkers, each family an adult male, an adult female and a child with its own traits, and every family growing by one member at each bigger map size. The land adults gather sticks and build real dams that raise the water upstream, plus lodges that shelter their rest. Resize the map, reshape the terrain, turn the seasons and watch the day pass — the benchmark measures the largest map this machine holds at 30 and 60 FPS.</p>
+<p class="small">Drag to orbit · scroll or pinch to zoom. Creatures in five families share the watershed — a beaver-like land family, fish, birds, bugs and two-legged walkers, each family an adult male, an adult female and a child with its own traits, and every family growing by one member at each bigger map size. The land adults gather sticks and build real dams that raise the water upstream, plus lodges that shelter their rest. Resize the map, reshape the terrain, turn the seasons and watch the day pass — the benchmark measures the largest map this machine holds at 30 and 60 FPS.</p>
 </section>
 <aside>
 <div class="panel"><h2>Environment</h2>
@@ -321,11 +321,21 @@ function makeBeaverRig(c){
  root.userData={body,head,snout,tail,legs,variantMats:[[fur,[0x8b7654,0x6b543a,0x9a8a70]],[light,[0xc2ad83,0xa8906a,0xd8cba8]]]};return {root};
 }
 function setupOrbit(){
- let down=false,lastX=0,lastY=0,dragAnimal=false;
- renderer.domElement.addEventListener('pointerdown',e=>{down=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
- renderer.domElement.addEventListener('pointermove',e=>{if(!down)return;let dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;let offset=camera.position.clone().sub(cameraTarget);let sph=new THREE.Spherical().setFromVector3(offset);sph.theta-=dx*.005;sph.phi=clamp(sph.phi+dy*.005,.18,1.42);sph.radius=clamp(sph.radius,orbitMin,orbitMax);camera.position.copy(cameraTarget).add(new THREE.Vector3().setFromSpherical(sph));camera.lookAt(cameraTarget);});
- renderer.domElement.addEventListener('pointerup',()=>down=false);
- renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();let off=camera.position.clone().sub(cameraTarget).multiplyScalar(e.deltaY>0?1.08:.92);off.clampLength(orbitMin,orbitMax);camera.position.copy(cameraTarget).add(off);camera.lookAt(cameraTarget);},{passive:false});
+ let pointers=new Map(),lastX=0,lastY=0,pinchDist=0,dragAnimal=false;
+ const el=renderer.domElement;
+ function pinchZoom(){ // Two fingers: spread to zoom in, pinch to zoom out.
+  if(pointers.size<2)return;
+  const pts=[...pointers.values()];
+  const d=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+  if(pinchDist>0){let off=camera.position.clone().sub(cameraTarget).multiplyScalar(pinchDist/d);off.clampLength(orbitMin,orbitMax);camera.position.copy(cameraTarget).add(off);camera.lookAt(cameraTarget);}
+  pinchDist=d;
+ }
+ el.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});el.setPointerCapture(e.pointerId);if(pointers.size===2){pinchDist=0;pinchZoom();}else{lastX=e.clientX;lastY=e.clientY;}});
+ el.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size>=2){pinchZoom();return;}let dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;let offset=camera.position.clone().sub(cameraTarget);let sph=new THREE.Spherical().setFromVector3(offset);sph.theta-=dx*.005;sph.phi=clamp(sph.phi+dy*.005,.18,1.42);sph.radius=clamp(sph.radius,orbitMin,orbitMax);camera.position.copy(cameraTarget).add(new THREE.Vector3().setFromSpherical(sph));camera.lookAt(cameraTarget);});
+ function endPointer(e){pointers.delete(e.pointerId);if(pointers.size===1){const p=[...pointers.values()][0];lastX=p.x;lastY=p.y;}if(pointers.size<2)pinchDist=0;}
+ el.addEventListener('pointerup',endPointer);
+ el.addEventListener('pointercancel',endPointer);
+ el.addEventListener('wheel',e=>{e.preventDefault();let off=camera.position.clone().sub(cameraTarget).multiplyScalar(e.deltaY>0?1.08:.92);off.clampLength(orbitMin,orbitMax);camera.position.copy(cameraTarget).add(off);camera.lookAt(cameraTarget);},{passive:false});
 }
 function sample(arr,x,y){return arr[at(clamp(Math.round(x),1,NX-2),clamp(Math.round(y),1,NY-2))];}
 function fluxX(i,j){ // Rusanov flux for U=[h,hu,hv]
