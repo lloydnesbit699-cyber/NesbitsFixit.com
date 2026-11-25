@@ -58,12 +58,14 @@ button{cursor:pointer}button:hover{border-color:var(--accent)}button.active{back
 <label>Temperature <b id="tempV">18 °C</b></label><input id="tempS" type="range" min="-5" max="38" step=".5" value="18">
 <label>Season <b id="seasonName">Summer</b></label><input id="seasonS" type="range" min="0" max="1" step="0.01" value="0.3">
 <div class="small">0 Spring · 0.25 Summer · 0.5 Autumn · 0.75 Winter. Season sets the temperature baseline, the vegetation colors, ground snow, and whether precipitation falls as rain or snow.</div>
+<label>Weather seed <input id="weatherSeedIn" type="number" min="1" step="1" value="1" style="width:80px"></label><label><input id="weatherAuto" type="checkbox"> Auto weather</label>
+<div class="small">Auto weather drives temperature, precipitation and wind from the seed — the same seed gives the same weather. Off: the sliders rule.</div>
 <div class="row"><span>Time of day</span><strong id="tod">—</strong></div>
 <div class="row"><span>Mean depth</span><strong id="depth">—</strong></div>
 <div class="row"><span>Mean flow speed</span><strong id="speed">—</strong></div>
 <div class="row"><span>Discharge proxy</span><strong id="flow">—</strong></div>
 <div class="row"><span>Surface</span><strong id="surface">—</strong></div>
-<div class="small">Precipitation adds depth — rain in spring, summer and autumn; slow drifting snow in winter, with snow on the ground. Wind sways plants and roughens the water. Heat evaporates depth and dries animals faster. At 0 °C or below the surface freezes — visual only, the solver keeps running. One full day/night cycle is 1 real hour; at night creatures move slower and rest sooner.</div>
+<div class="small">Precipitation adds depth — rain in spring, summer and autumn; slow drifting snow in winter, with snow on the ground. Wind sways plants and roughens the water. Heat evaporates depth and dries animals faster. At 0 °C or below the surface freezes for real — ice grows and melts by the calibrated model, and a frozen surface seals the water: no evaporation, no rain input. One full day/night cycle is 1 real hour; at night creatures move slower and rest sooner.</div>
 </div>
 <div class="panel"><h2>Map</h2>
 <div class="row"><span>Sim cells</span><strong id="cells">—</strong></div>
@@ -115,13 +117,15 @@ button{cursor:pointer}button:hover{border-color:var(--accent)}button.active{back
 <div id="log">Waiting for simulation samples…</div>
 </div>
 <div class="panel"><h2>Model notes</h2><div class="small">Sandbox build of the Living River Lab. The river uses a 2D finite-volume conservative update for depth and horizontal momentum with local Lax–Friedrichs/Rusanov numerical fluxes, bed-slope source terms, rainfall, friction, evaporation, and wet/dry clipping. The visible water surface is a 3D mesh. Map size, terrain shape, weather, season and time of day are live controls; resizing rebuilds the whole world. Creatures in five families share the watershed — the roster grows with the map size — each with its own randomized traits; the land adults build dams that act through the solver. Creature bones are articulated segment meshes driven by a force-based body controller and gait/swim joint targets.</div></div>
-<div class="panel"><h2>Scientific limits</h2><div class="small">This is an executable visual research prototype, not a validated watershed model or species-specific biomechanics model. The solver uses simplified boundary conditions and a reduced 2D horizontal domain; vertical flow is represented visually by surface elevation. Identity and ablation scores are operational proxies, not established biological measurements. The ice state is visual only. Season and day/night effects are simplified visual and behavioral rules, not calibrated phenology or circadian models. Calibrate units, validate conservation and convergence, and compare against reference cases before scientific use.</div></div>
+<div class="panel"><h2>Scientific limits</h2><div class="small">This is an executable visual research prototype, not a validated watershed model or species-specific biomechanics model. The solver uses simplified boundary conditions and a reduced 2D horizontal domain; vertical flow is represented visually by surface elevation. Identity and ablation scores are operational proxies, not established biological measurements. The ice state is a solver state (Stefan growth + degree-day melt, calibrated in uelse/ice.py); it is not mass-coupled to the water depth. Season and day/night effects are simplified visual and behavioral rules, not calibrated phenology or circadian models. Calibrate units, validate conservation and convergence, and compare against reference cases before scientific use.</div></div>
 </aside>
 </main>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
 import {createSandboxAPI, composeStableId, SANDBOX_WORLD_ID} from './sandbox-api.js';
+import * as Loco from './locomotion.js';
+import * as Wx from './weather.js';
 const $=id=>document.getElementById(id);
 const stage=$('stage');
 let scene,camera,renderer,clock,terrainMesh,waterMesh,waterGeo,waterMat,hemiLight,sunLight,plants=[],flowArrows=[],rainLines,floorMesh,gridHelper;
@@ -129,7 +133,17 @@ const cameraTarget=new THREE.Vector3(0,0,0);
 let NX=104,NY=72;const DX=.42,DT=.018,G=9.81;let NN=NX*NY;
 const at=(x,y)=>y*NX+x,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 let bed,H,HU,HV,sed,h2,hu2,hv2;
-function allocFields(){bed=new Float32Array(NN);H=new Float32Array(NN);HU=new Float32Array(NN);HV=new Float32Array(NN);sed=new Float32Array(NN);h2=new Float32Array(NN);hu2=new Float32Array(NN);hv2=new Float32Array(NN);}
+function allocFields(){bed=new Float32Array(NN);H=new Float32Array(NN);HU=new Float32Array(NN);HV=new Float32Array(NN);sed=new Float32Array(NN);h2=new Float32Array(NN);hu2=new Float32Array(NN);hv2=new Float32Array(NN);ice=new Float32Array(NN);}
+// Step 5.8: the ice field + the seeded weather driver. ice[k] is
+// the ice thickness (m) on cell k, stepped in fluidStep with the
+// air temperature (weather.js stepIce — the Python model's mirror).
+// A cell is frozen when its ice is at/above FROZEN_THRESHOLD AND
+// it holds real water (H > WET_DEPTH_MIN): only a frozen WATER
+// surface seals (no evaporation, no rain input). Remnant ice on
+// dry ground melts but never blocks rain. iceSummary is the
+// field roll-up the API + the surface readout report.
+let ice=null,iceSummary={frozenFraction:0,meanThickness:0,maxThickness:0};
+let weatherSeed=1,weatherAuto=false;
 let running=true,elapsed=0,frame=0,rain=0,wind=.35,temp=18,viewMode='cinematic',samples=[],riverSamples=[],identitySamples=[],weatherSamples=[],ablationSamples=[],speciesSamples=[],interactionSamples=[],last={};
 let animal={kind:'beaver',name:'Beaver A',x:18,y:33,vx:0,vy:0,energy:92,hydration:78,heading:0,mode:'walking',identity:.96};
 let companions=[
@@ -172,6 +186,8 @@ function bedHeight(x,y){
 }
 function initFields(){
  for(let y=0;y<NY;y++)for(let x=0;x<NX;x++){let i=at(x,y),d=Math.abs(x-riverX(y));bed[i]=bedHeight(x,y);H[i]=Math.max(.018,.13+.82*Math.exp(-d*d/riverSigma2));HU[i]=H[i]*.55;HV[i]=H[i]*.035*Math.sin(y*.12);sed[i]=.02;}
+ if(ice)ice.fill(0); // regenerating terrain re-fills the water: the old ice goes with it
+ iceSummary={frozenFraction:0,meanThickness:0,maxThickness:0};
 }
 function buildTerrain(){
  let groundGeo=new THREE.PlaneGeometry(NX*DX,NY*DX,NX-1,NY-1);groundGeo.rotateX(-Math.PI/2);
@@ -239,6 +255,7 @@ function makePlants(){
  // shares: tree 24%, bush 28%, reed 14%, pine 11%, willow 8%, fern 7%,
  // rock 8%. Water plants are ~9% of attempts, only near the channel.)
  let attempts=Math.min(2500,Math.round(980*Math.sqrt(NN/7488)));
+ if(NX<=104)attempts=Math.round(attempts/3); // Level 1 foliage (Lloyd 2026-11-24): cut to ~275 plants - a third of the original 980 attempts on the smallest map, so it has room
  for(let n=0;n<attempts;n++){
   let x=Math.random()*NX,y=Math.random()*NY,d=Math.abs(x-riverX(y));
   if(mapBuildingSpot&&Math.hypot(x-mapBuildingSpot.x,y-mapBuildingSpot.y)<4)continue; // keep the hut's pad clear
@@ -361,7 +378,11 @@ function fluidStep(dt){
  for(let step=0;step<sub;step++){
   for(let y=1;y<NY-1;y++)for(let x=1;x<NX-1;x++){
    let k=at(x,y),fxp=fluxX(x+1,y),fxm=fluxX(x,y),fyp=fluxY(x,y+1),fym=fluxY(x,y);
-   let dh=-((fxp[0]-fxm[0])+(fyp[0]-fym[0]))/dx+rain*.018-evap;
+   // Step 5.8: a frozen water surface seals — no rain input, no
+   // evaporation on that cell (the weather coupling, per cell).
+   // The ice state is from the previous frame (one frame of lag).
+   let sealed=ice[k]>=Wx.FROZEN_THRESHOLD&&H[k]>Wx.WET_DEPTH_MIN;
+   let dh=-((fxp[0]-fxm[0])+(fyp[0]-fym[0]))/dx+(sealed?0:rain*.018)-(sealed?0:evap);
    let dhu=-((fxp[1]-fxm[1])+(fyp[1]-fym[1]))/dx;
    let dhv=-((fxp[2]-fxm[2])+(fyp[2]-fym[2]))/dx;
    if(!disablePressure){let bx=(bed[at(x+1,y)]-bed[at(x-1,y)])/(2*dx),by=(bed[at(x,y+1)]-bed[at(x,y-1)])/(2*dx);dhu-=G*H[k]*bx;dhv-=G*H[k]*by;}
@@ -375,6 +396,18 @@ function fluidStep(dt){
   // Reflective banks; open-ish inflow/outflow on upstream/downstream edges.
   for(let x=0;x<NX;x++){let a=at(x,0),b=at(x,NY-1);H[a]=H[at(x,1)];HU[a]=HU[at(x,1)];HV[a]=HV[at(x,1)];H[b]=H[at(x,NY-2)];HU[b]=HU[at(x,NY-2)];HV[b]=HV[at(x,NY-2)];}
  }
+ // Step 5.8: step the ice field once per frame (not per substep —
+ // the substeps are numerical subdivisions of this frame). Wet
+ // cells grow/melt with the air temperature; dry cells only melt
+ // (ice on dry ground has no water to feed growth). The summary
+ // is the roll-up the API + the surface readout report.
+ let wetN=0,frozenN=0,thickSum=0,thickMax=0;
+ for(let k=0;k<NN;k++){
+  if(H[k]>Wx.WET_DEPTH_MIN){ice[k]=Wx.stepIce(ice[k],temp,dt);}
+  else if(temp>0&&ice[k]>0){ice[k]=Wx.stepIce(ice[k],temp,dt);}
+  if(H[k]>Wx.WET_DEPTH_MIN){wetN++;thickSum+=ice[k];if(ice[k]>thickMax)thickMax=ice[k];if(ice[k]>=Wx.FROZEN_THRESHOLD)frozenN++;}
+ }
+ iceSummary={frozenFraction:wetN?frozenN/wetN:0,meanThickness:wetN?thickSum/wetN:0,maxThickness:thickMax};
 }
 // ============ Stages 6+8: creature variation, families, roster ============
 // Five groups x three individuals: 1 adult male, 1 adult female, 1 child.
@@ -407,7 +440,7 @@ const GROUP_DEFS=[
 ];
 const SEXES=['male','female','child'];
 function makeCritter(group,sex,name,fx,fy){
- let c={group,sex,name,fx,fy,x:0,y:0,z:0,vx:0,vy:0,vz:0,alt:0,energy:90,energyMax:100,hydration:85,heading:0,mode:'walking',identity:.95,rig:null,parent:null,tx:0,ty:0,flyState:'fly',hopT:0,activity:'',build:null};
+ let c={group,sex,name,fx,fy,x:0,y:0,z:0,vx:0,vy:0,vz:0,alt:0,energy:90,energyMax:100,hydration:85,heading:0,mode:'walking',identity:.95,rig:null,parent:null,tx:0,ty:0,flyState:'fly',hopT:0,activity:'',build:null,gait:'walk',gaitPhase:0,climb:null};
  assignTraits(c);
  c.energy=Math.min(Math.round(85+Math.random()*11),c.energyMax);
  return c;
@@ -428,7 +461,7 @@ function memberSpec(def,i){
 function familyMembers(group){return creatures.filter(c=>c.group===group);}
 // Batch 1, Stage 3: every creature carries a persistent tag — FAMILY-##,
 // numbered in family order, so BEAVER-01 is always Beaver A. Tags are
-// deterministic across rebuilds and ride along in the telemetry.
+// deterministic across rebuilds and ride along in the CSV exports.
 const TAG_STEMS={land:'BEAVER',swim:'FISH',fly:'BIRD',bug:'BUG',humanoid:'HUMAN'};
 function equipCritter(c){
  c.rig=c.group==='land'?makeBeaverRig(c):c.group==='swim'?makeFishRig(c):c.group==='fly'?makeBirdRig(c):c.group==='bug'?makeBugRig(c):makeHumanoidRig(c);
@@ -451,7 +484,7 @@ function buildCreatures(){
  animal.sex='male';animal.group='land';animal.fx=.17;animal.fy=.46;animal.name='Beaver A';
  companions[0].sex='female';companions[0].group='land';companions[0].fx=.24;companions[0].fy=.39;companions[0].name='Beaver B';
  companions[1].sex='child';companions[1].group='land';companions[1].fx=.70;companions[1].fy=.64;companions[1].name='Beaver C';
- [animal,...companions].forEach(c=>{c.z=0;c.vz=0;c.alt=0;c.tx=0;c.ty=0;c.flyState='fly';c.hopT=0;c.activity='';c.build=null;c.parent=null;assignTraits(c);if(c.energy>c.energyMax)c.energy=c.energyMax;});
+ [animal,...companions].forEach(c=>{c.z=0;c.vz=0;c.alt=0;c.tx=0;c.ty=0;c.flyState='fly';c.hopT=0;c.activity='';c.build=null;c.parent=null;c.gait='walk';c.gaitPhase=0;c.climb=null;assignTraits(c);if(c.energy>c.energyMax)c.energy=c.energyMax;});
  companions[1].parent=companions[0];
  creatures.push(animal,...companions);
  let n=familySize();
@@ -479,7 +512,7 @@ function resetCreatures(){
  creatures.forEach(c=>{
   assignTraits(c);recolorVariant(c);
   c.energy=Math.min(Math.round(85+Math.random()*11),c.energyMax);
-  c.hydration=85;c.vx=0;c.vy=0;c.vz=0;c.z=0;c.alt=c.group==='fly'?8+Math.random()*4:0;c.heading=0;c.mode='walking';c.activity='';
+  c.hydration=85;c.vx=0;c.vy=0;c.vz=0;c.z=0;c.alt=c.group==='fly'?8+Math.random()*4:0;c.heading=0;c.mode='walking';c.activity='';c.gait='walk';c.gaitPhase=0;c.climb=null;
   c.recovering=false;c.exhausted=false;c.flyState='fly';c.tx=0;c.ty=0;c.hopT=0;
   c.held=false; // Step 3.4: a reset rebuilds creature state — holds clear with it.
   c.rig.root.scale.setScalar(c.scaleEff);
@@ -710,6 +743,121 @@ function recoveryCheck(c){
  return c.recovering;
 }
 // ============ Land trio steering (energy model kept exactly as specified) ============
+// ============ Step 5.7: the walk/climb controller layer ============
+// The controller math lives in locomotion.js (the Python package
+// brier-bot/locomotion/ is the source of truth for the constants;
+// the cross-validation test asserts the two agree). This block is
+// the sandbox wiring: terrain gradients, the per-creature gait +
+// climb update, and the terrain query the API exposes.
+// Land + humanoid creatures only - swim/fly/bug have their own
+// modes and never walk or climb.
+function bedAt(x,y){
+ let ix=clamp(Math.round(x),0,NX-1),iy=clamp(Math.round(y),0,NY-1);
+ return bed[at(ix,iy)];
+}
+function gradAt(x,y){
+ // Central differences on bed[], in world rise/run (DX converts
+ // grid units to metres). Clamped to the map edge.
+ let ix=clamp(Math.round(x),1,NX-2),iy=clamp(Math.round(y),1,NY-2);
+ let gx=(bed[at(ix+1,iy)]-bed[at(ix-1,iy)])/(2*DX);
+ let gy=(bed[at(ix,iy+1)]-bed[at(ix,iy-1)])/(2*DX);
+ return {gx,gy,mag:Math.hypot(gx,gy)};
+}
+function gradientAlong(x,y,heading){
+ // The terrain gradient component along a heading: positive is
+ // uphill in the direction of travel, negative is downhill.
+ let g=gradAt(x,y);
+ return g.gx*Math.cos(heading)+g.gy*Math.sin(heading);
+}
+function terrainAt(x,y){
+ // The API's terrain query (sandbox-api.js terrainAt): bed height
+ // + gradient at grid coords. Out-of-bounds is a named refusal,
+ // never a clamped guess.
+ if(typeof x!=='number'||!Number.isFinite(x)||typeof y!=='number'||!Number.isFinite(y)){
+  return {ok:false,code:'BAD_TERRAIN',error:'terrain coordinates must be finite numbers, got ('+String(x)+', '+String(y)+')'};
+ }
+ if(x<0||x>NX-1||y<0||y>NY-1){
+  return {ok:false,code:'OUT_OF_BOUNDS',error:'('+x+', '+y+') is off the '+NX+'x'+NY+' map'};
+ }
+ let g=gradAt(x,y);
+ return {ok:true,x,y,bed:bedAt(x,y),gx:g.gx,gy:g.gy,gradient:g.mag,
+         slopeDeg:Math.atan(g.mag)*180/Math.PI};
+}
+function iceAt(x,y){
+ // The API's ice query (sandbox-api.js iceAt, Step 5.8): ice
+ // thickness + frozen + depth at grid coords. Ice is per-cell,
+ // so fractional coords round to the nearest cell. frozen means
+ // the surface is SEALED (ice at/above the threshold AND real
+ // water under it) — remnant ice on dry ground reports its
+ // thickness with frozen:false. Out-of-bounds is a named
+ // refusal, never a clamped guess.
+ if(typeof x!=='number'||!Number.isFinite(x)||typeof y!=='number'||!Number.isFinite(y)){
+  return {ok:false,code:'BAD_ICE',error:'ice coordinates must be finite numbers, got ('+String(x)+', '+String(y)+')'};
+ }
+ if(x<0||x>NX-1||y<0||y>NY-1){
+  return {ok:false,code:'OUT_OF_BOUNDS',error:'('+x+', '+y+') is off the '+NX+'x'+NY+' map'};
+ }
+ let k=at(Math.round(x),Math.round(y));
+ return {ok:true,x,y,thickness:ice[k],frozen:ice[k]>=Wx.FROZEN_THRESHOLD&&H[k]>Wx.WET_DEPTH_MIN,depth:H[k]};
+}
+function gaitCostFactor(c){
+ // The walk drain scales with the gait (trot/canter/gallop cost
+ // more than the walk) - land + humanoid only; anything without
+ // a gait pays the base rate.
+ if((c.group==='land'||c.group==='humanoid')&&c.gait&&Loco.GAIT_COST[c.gait])return Loco.GAIT_COST[c.gait];
+ return 1;
+}
+function updateLocomotion(c,dt,speedMs){
+ // Called at the end of steerCreature + steerHumanoid, after the
+ // mode is set for this frame. speedMs is the creature's world
+ // speed (m/s) from the steering velocity - the distance it
+ // actually travels this step.
+ if(c.group!=='land'&&c.group!=='humanoid')return;
+ let leg=Loco.SANDBOX_LEG_LENGTH[c.group];
+ // Gait from Froude; phase advances by DISTANCE (never elapsed
+ // time) - a standing creature takes no steps.
+ c.gait=Loco.dominantGait(Loco.froude(speedMs,leg));
+ c.gaitPhase+=Loco.phaseAdvance(speedMs*dt,leg);
+ // Climbing needs motion (a resting creature on a slope stands,
+ // it does not climb) and dry land (never in water/recovery).
+ let moving=speedMs>0.05;
+ let dry=c.mode!=='swimming'&&c.mode!=='floating'&&c.mode!=='recovery'&&c.mode!=='resting';
+ let grad=gradientAlong(c.x,c.y,c.heading);
+ let grip=Loco.SANDBOX_GRIP[c.group];
+ if(moving&&dry&&grad>Loco.CLIMB_SLOPE_MIN){
+  let decision=Loco.climbFor(grad,grip,c.energy);
+  if(decision.state==='slipping'){
+   // Past the grip limit: slide back down-slope. The slide
+   // accel is the real formula (g*(sin-mu*cos), grid units);
+   // the steering re-routes next frame.
+   c.mode='slipping';
+   let g=gradAt(c.x,c.y),gl=g.mag||1;
+   let a=Loco.slipAccel(grad,grip)/DX;
+   c.vx-=g.gx/gl*a*dt;c.vy-=g.gy/gl*a*dt;
+   c.climb={state:'slipping',slope:grad,grip:grip,limit:decision.gripLimit};
+  }else if(decision.state==='holding'){
+   // Exhausted below the limit: static friction holds, no
+   // progress, no slide. The mode returns to 'walking' (the
+   // creature is standing on the slope, not climbing it).
+   if(c.mode==='climbing'||c.mode==='slipping')c.mode='walking';
+   c.climb={state:'holding',slope:grad,grip:grip,limit:decision.gripLimit};
+  }else{
+   // Climbing: cap the speed at the power limit (the cap bites
+   // next frame's integration - the velocity persists) and pay
+   // the lifting cost through the standard drain.
+   let vmax=decision.climbSpeed;
+   if(speedMs>vmax){let f=vmax/speedMs;c.vx*=f;c.vy*=f;speedMs=vmax;}
+   c.mode='climbing';
+   c.climb={state:'climbing',slope:grad,grip:grip,limit:decision.gripLimit,climbSpeed:speedMs};
+   baseEnergy(c,dt,Loco.climbCostRate(grad,speedMs)/60,0);
+  }
+ }else{
+  // Not climbing: back to walking (only if the controller had
+  // set the mode - never clobber swimming/floating/recovery).
+  if(c.mode==='climbing'||c.mode==='slipping')c.mode='walking';
+  c.climb=null;
+ }
+}
 function steerCreature(c,dt,isPrimary=false){
  let ix=clamp(Math.round(c.x),1,NX-2),iy=clamp(Math.round(c.y),1,NY-2),k=at(ix,iy),depth=H[k],u=HU[k]/Math.max(depth,.001),v=HV[k]/Math.max(depth,.001),center=riverX(c.y);
  let gx=c.x,gy=c.y,dx,dy,d,ax,ay;
@@ -764,7 +912,7 @@ function steerCreature(c,dt,isPrimary=false){
  // instead of draining. Drains scale by the individual's drain trait;
  // carrying sticks costs 1.5x; resting near your own lodge boosts recovery.
  let b=c.build,carrying=b&&(b.state==='carry'||b.state==='place');
- let drain=c.mode==='swimming'?.012:c.mode==='floating'?.001:c.mode==='recovery'?0:.004;
+ let drain=c.mode==='swimming'?.012:c.mode==='floating'?.001:c.mode==='recovery'?0:.004*gaitCostFactor(c);
  drain*=c.traits.drain*(carrying?1.5:1);
  let gain=c.mode==='recovery'?.02:c.mode==='floating'?.005:0;
  if(c.mode==='recovery'&&b&&b.lodge.built&&Math.hypot(c.x-b.lodge.x,c.y-b.lodge.y)<6)gain*=1.5;
@@ -773,6 +921,7 @@ function steerCreature(c,dt,isPrimary=false){
  let heatScale=1+Math.max(0,temp-25)*.05;
  c.hydration=clamp(c.hydration+(depth>.3?.06:-.02*heatScale*c.traits.hydro)*dt*60,0,100);
  if(!bTarget)c.activity='';
+ updateLocomotion(c,dt,Math.hypot(c.vx,c.vy)*2.5*c.paceEff*nightPace*DX);
 }
 function steerSwimmer(c,dt){
  let ix=clamp(Math.round(c.x),1,NX-2),iy=clamp(Math.round(c.y),1,NY-2),k=at(ix,iy),depth=H[k],u=HU[k]/Math.max(depth,.001),v=HV[k]/Math.max(depth,.001);
@@ -851,8 +1000,9 @@ function steerHumanoid(c,dt){
  let resting=recoveryCheck(c)||nightRest(c);
  let swimming=depth>.47&&!resting;
  c.mode=resting?'resting':swimming?'swimming':'walking';
- if(resting)baseEnergy(c,dt,0,.02);else baseEnergy(c,dt,swimming?.012:.004,0);
+ if(resting)baseEnergy(c,dt,0,.02);else baseEnergy(c,dt,swimming?.012:.004*gaitCostFactor(c),0);
  hydroStep(c,dt,depth);
+ updateLocomotion(c,dt,Math.hypot(c.vx,c.vy)*2.4*c.paceEff*nightPace*DX);
 }
 function updateCreatures(dt){
  // Step 3.4 (M3): a held creature skips steering — frozen in place while
@@ -873,7 +1023,12 @@ function updateCreatures(dt){
 // ============ Posing ============
 function poseRig(rig,c){
  const r=rig.root,ud=r.userData,scale=DX;let ix=clamp(Math.round(c.x),0,NX-1),iy=clamp(Math.round(c.y),0,NY-1),k=at(ix,iy),wet=H[k]>.28;let surface=bed[k]+(wet?H[k]:0);r.position.set((c.x-NX/2)*scale,surface+.48,(c.y-NY/2)*scale);r.rotation.y=-c.heading;
- let swim=c.mode==='swimming'||c.mode==='floating',phase=elapsed*(swim?5.5:8);
+ // Step 5.7: the legs swing with the gait phase (distance-driven),
+ // not elapsed time - a standing creature's legs stop. Swimming keeps
+ // the time-based undulation (swimming is not stepping). A climbing
+ // creature leans into the slope (half the slope angle).
+ let swim=c.mode==='swimming'||c.mode==='floating',phase=swim?elapsed*5.5:(c.gaitPhase||0);
+ r.rotation.x=(c.mode==='climbing'&&c.climb)?-Math.atan(c.climb.slope)*.5:0;
  ud.body.scale.set(1,$('a12').checked&&c===animal?1+Math.sin(phase)*.1:1,1);
  ud.head.position.set(.73,.13,0);ud.snout.position.set(.97,.08,0);
  ud.tail.position.set(-.77,.02,0);ud.tail.rotation.z=Math.sin(phase*.7)*.45;ud.tail.rotation.x=Math.cos(phase*.7)*.28;
@@ -914,7 +1069,11 @@ function poseHumanoid(c){
  let wet=H[k]>.28,surface=bed[k]+(wet?H[k]:0);
  r.position.set((c.x-NX/2)*DX,surface,(c.y-NY/2)*DX);
  r.rotation.y=-c.heading;
- let phase=elapsed*7,swim=c.mode==='swimming';
+ // Step 5.7: the legs swing with the gait phase (distance-driven),
+ // not elapsed time - a standing humanoid's legs stop. Swimming keeps
+ // the fixed swing.
+ let swim=c.mode==='swimming';
+ let phase=swim?elapsed*7:(c.gaitPhase||0);
  let swing=swim?.15:Math.sin(phase)*.5;
  ud.legL.rotation.x=swing;ud.legR.rotation.x=-swing;
  ud.armL.rotation.x=-swing*.8;ud.armR.rotation.x=swing*.8;
@@ -992,9 +1151,12 @@ function updateUI(){
  $('depth').textContent=(last.meanH||0).toFixed(3)+' m*';$('speed').textContent=(last.meanV||0).toFixed(3)+' m/s*';$('flow').textContent=(last.dis||0).toFixed(4)+' *';
  $('mode').textContent=animal.mode+(animal.activity?' · '+animal.activity:'');$('energy').textContent=(animal.energy/animal.energyMax*100).toFixed(1)+'%';$('hydration').textContent=animal.hydration.toFixed(1)+'%';
  $('interaction').textContent=Math.hypot(animal.x-companions[0].x,animal.y-companions[0].y).toFixed(1)+' grid units';$('cid').textContent=(animal.identity*100).toFixed(1)+'%';$('rid').textContent=((last.riverId||.8)*100).toFixed(1)+'%';$('continuity').textContent=(last.continuity||.97).toFixed(2);$('observer').textContent=(last.observer||.84).toFixed(2);
- let frozen=temp<=0;
+ // Step 5.8: the ice visual follows the REAL ice field (over half
+ // the wet cells frozen), not the raw temperature flip — and the
+ // surface readout reports the measured ice, not "visual only".
+ let frozen=iceSummary.frozenFraction>0.5;
  if(frozen!==iceOn){iceOn=frozen;if(frozen){waterMat.color.set(0xcfe8f2);waterMat.roughness=.35;waterMat.opacity=.96;}else{waterMat.color.set(0x26a9bd);waterMat.roughness=.16;waterMat.opacity=.88;}}
- $('surface').textContent=frozen?'ICE — frozen (visual only)':(rain>0?'Rain on open water':'Open water');
+ $('surface').textContent=frozen?('ICE — '+iceSummary.meanThickness.toFixed(3)+' m, '+Math.round(iceSummary.frozenFraction*100)+'% frozen'):(rain>0?'Rain on open water':'Open water');
 }
 function sexLabel(c){return c.sex==='male'?'M adult':c.sex==='female'?'F adult':'child';}
 function traitStr(c){let t=c.traits;return t.scale.toFixed(2)+'× · p'+t.pace.toFixed(2)+' · d'+t.drain.toFixed(2)+' · h'+t.hydro.toFixed(2)+' · '+(t.bold==='high'?'bold':'shy')+' · v'+t.variant;}
@@ -1033,7 +1195,11 @@ function setMode(m){viewMode=m;['cinematic','science','research'].forEach(id=>$(
 function animate(){
  requestAnimationFrame(animate);let raw=clock.getDelta();let dt=Math.min(raw,.035);
  if(raw>0&&raw<.5){fpsAvg=fpsAvg*.95+(1/raw)*.05;if(benchRunning)benchSamples.push(1/raw);}
- if(running){elapsed+=dt;frame++;fluidStep(dt);updateCreatures(dt);updateVisual(dt);updateRain(dt);updateSnow(dt);}
+ if(running){elapsed+=dt;frame++;
+  // Step 5.8: auto weather drives temp/rain/wind from the seed.
+  // Off (the default): the sliders rule, exactly as before.
+  if(weatherAuto){let w=Wx.weatherAt(weatherSeed,elapsed,season);temp=w.temp;rain=w.rain;wind=w.wind;$('tempS').value=temp;$('rainS').value=rain;$('windS').value=wind;}
+  fluidStep(dt);updateCreatures(dt);updateVisual(dt);updateRain(dt);updateSnow(dt);}
  renderer.render(scene,camera);
  updateTags();
 }
@@ -1110,6 +1276,10 @@ $('cinematic').onclick=()=>setMode('cinematic');$('science').onclick=()=>setMode
 $('rain').onclick=()=>{rain=rain>.001?0:.3;$('rainS').value=rain;$('rain').textContent=rain?precipName()+': on':precipName()+': off';};
 $('rainS').oninput=e=>{rain=+e.target.value;$('rain').textContent=rain?precipName()+': on':precipName()+': off';};
 $('windS').oninput=e=>wind=+e.target.value;$('tempS').oninput=e=>temp=+e.target.value;
+// Step 5.8: the weather seed + the auto-weather toggle. A bad
+// seed (empty, NaN, below 1) falls back to 1, never a crash.
+$('weatherSeedIn').onchange=e=>{weatherSeed=Math.max(1,Math.floor(+e.target.value)||1);e.target.value=weatherSeed;};
+$('weatherAuto').onchange=e=>{weatherAuto=e.target.checked;};
 $('mapSize').onchange=e=>{let [nx,ny]=e.target.value.split('x').map(Number);rebuildWorld(nx,ny);};
 $('seedIn').onchange=e=>{terrainSeed=+e.target.value||1;};
 $('seedRandom').onclick=()=>{terrainSeed=Math.floor(Math.random()*99999)+1;$('seedIn').value=terrainSeed;regenerateTerrain();};
@@ -1192,10 +1362,12 @@ let sandboxAPI=null;
 try{
  sandboxAPI=createSandboxAPI({
   getCreatures:()=>creatures,
-  getWorld:()=>({terrainSeed,NX,NY,elapsed,season,rain,wind,temp,running}),
+  getWorld:()=>({terrainSeed,NX,NY,elapsed,season,rain,wind,temp,running,weatherSeed,weatherAuto,ice:iceSummary}),
   recolor:(c)=>recolorVariant(c),
   rescale:(c)=>{if(c.rig)c.rig.root.scale.setScalar(c.scaleEff);},
   pickGround:pickGround,
+  getTerrain:terrainAt,
+  getIce:iceAt,
  });
  window.SandboxAPI=sandboxAPI;
 }catch(e){console.error('SandboxAPI failed to wire (the sandbox still runs):',e);}

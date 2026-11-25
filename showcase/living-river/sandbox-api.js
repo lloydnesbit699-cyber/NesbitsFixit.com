@@ -37,6 +37,24 @@
 //   coordinates, lodge built) must match the live build exactly, or the
 //   place-back is refused (BUILD_MISMATCH) — mesh rebuild from saved
 //   coordinates is M2 restore work, not built yet.
+// - terrainAt (Step 5.7): the terrain query - bed height + gradient
+//   at grid coords, via the ctx.getTerrain wire-up. A sandbox
+//   without the wire-up refuses NO_TERRAIN_CHANNEL (the pickGround
+//   pattern); out-of-bounds is OUT_OF_BOUNDS, never a clamped guess.
+// - liveDetail (Step 5.7) carries the walk/climb controller state:
+//   gait (the Froude-selected gait), gait_phase (distance-driven),
+//   climb (the climb report {state, slope, grip, limit} or null).
+// - iceAt (Step 5.8): the ice query - thickness + frozen at grid
+//   coords, via the ctx.getIce wire-up. A sandbox without the
+//   wire-up refuses NO_ICE_CHANNEL (the terrainAt pattern);
+//   out-of-bounds is OUT_OF_BOUNDS, never a clamped guess.
+// - weatherSample (Step 5.8): the seeded weather driver, pure -
+//   weatherAt(seed, t, season) with no ctx needed. Same inputs
+//   give the same {temp, rain, wind}; bad input is BAD_WEATHER.
+// - status (Step 5.8) carries the weather + ice state: weather
+//   {seed, auto} and ice {frozenFraction, meanThickness,
+//   maxThickness} from getWorld. A sandbox that predates the
+//   fields reports nulls, never undefined (the 5.7 pattern).
 // - pickGround (Stage 18, the raycast — Q7 ruled by Lloyd 2026-11-23):
 //   the API exposes the sandbox's own raycast through the context
 //   (ctx.pickGround, wired in map-sandbox.html — the raycast needs the
@@ -44,7 +62,9 @@
 //   here). A sandbox without the wire-up refuses NO_PICK_CHANNEL —
 //   the pick never silently guesses.
 
-export const SANDBOX_API_VERSION = "1.1.0";
+import { weatherAt } from "./weather.js";
+
+export const SANDBOX_API_VERSION = "1.3.0";
 
 // The Living River sandbox world id — minted once (Step 3.4, 2026-11-23),
 // recorded in the ledger (provenance entry, subject = this id). Any future
@@ -168,6 +188,19 @@ export function createSandboxAPI(ctx) {
     s.fly_state = c.flyState;
     s.hop_t = c.hopT;
     s.activity = c.activity;
+    // Step 5.7: the walk/climb controller state. Creatures that
+    // predate the fields (mock creatures in tests, or a roster
+    // built before 5.7) report nulls, never undefined.
+    s.gait = typeof c.gait === "string" ? c.gait : null;
+    s.gait_phase = isFiniteNumber(c.gaitPhase) ? c.gaitPhase : null;
+    s.climb = (c.climb && typeof c.climb === "object") ? {
+      state: c.climb.state,
+      slope: c.climb.slope,
+      grip: c.climb.grip,
+      limit: c.climb.limit,
+      climb_speed: isFiniteNumber(c.climb.climbSpeed)
+        ? c.climb.climbSpeed : null,
+    } : null;
     s.recovering = !!c.recovering;
     s.exhausted = !!c.exhausted;
     s.drinking = !!c.drinking;
@@ -455,6 +488,9 @@ export function createSandboxAPI(ctx) {
       const creatures = ctx.getCreatures() || [];
       const w = ctx.getWorld() || {};
       dropStaleHolds();
+      // Step 5.8: the weather + ice state. A sandbox that
+      // predates the fields reports nulls, never undefined.
+      const wi = w.ice && typeof w.ice === "object" ? w.ice : null;
       return {
         ok: true,
         api: "sandbox-api",
@@ -465,6 +501,15 @@ export function createSandboxAPI(ctx) {
         running: !!w.running,
         map: { NX: w.NX, NY: w.NY },
         elapsed: w.elapsed,
+        weather: {
+          seed: isFiniteNumber(w.weatherSeed) ? w.weatherSeed : null,
+          auto: typeof w.weatherAuto === "boolean" ? w.weatherAuto : null,
+        },
+        ice: {
+          frozenFraction: wi && isFiniteNumber(wi.frozenFraction) ? wi.frozenFraction : null,
+          meanThickness: wi && isFiniteNumber(wi.meanThickness) ? wi.meanThickness : null,
+          maxThickness: wi && isFiniteNumber(wi.maxThickness) ? wi.maxThickness : null,
+        },
       };
     }),
 
@@ -581,6 +626,70 @@ export function createSandboxAPI(ctx) {
         return err("INTERNAL", "pickGround returned a non-object — the wire-up is broken");
       }
       return r;
+    }),
+
+    // The terrain query (Step 5.7). Delegates to the sandbox-side
+    // terrainAt (ctx.getTerrain, wired in map-sandbox.html) and
+    // passes its result through unchanged — success {ok, x, y,
+    // bed, gx, gy, gradient, slopeDeg} in grid coords, or a named
+    // refusal (BAD_TERRAIN, OUT_OF_BOUNDS). A sandbox without the
+    // wire-up refuses NO_TERRAIN_CHANNEL: the terrain is never
+    // guessed, and out-of-bounds is never clamped.
+    terrainAt: safe((x, y) => {
+      if (!isFiniteNumber(x) || !isFiniteNumber(y)) {
+        return err("BAD_TERRAIN", "terrain coordinates must be finite numbers, got (" +
+          String(x) + ", " + String(y) + ")");
+      }
+      if (typeof ctx.getTerrain !== "function") {
+        return err("NO_TERRAIN_CHANNEL", "this sandbox has no terrain channel — it " +
+          "predates the terrainAt wire-up (Step 5.7)");
+      }
+      const r = ctx.getTerrain(x, y);
+      if (!r || typeof r !== "object" || Array.isArray(r)) {
+        return err("INTERNAL", "getTerrain returned a non-object — the wire-up is broken");
+      }
+      return r;
+    }),
+
+    // The ice query (Step 5.8). Delegates to the sandbox-side
+    // iceAt (ctx.getIce, wired in map-sandbox.html) and passes
+    // its result through unchanged — success {ok, x, y,
+    // thickness, frozen, depth} in grid coords, or a named
+    // refusal (BAD_ICE, OUT_OF_BOUNDS). A sandbox without the
+    // wire-up refuses NO_ICE_CHANNEL: the ice is never guessed,
+    // and out-of-bounds is never clamped.
+    iceAt: safe((x, y) => {
+      if (!isFiniteNumber(x) || !isFiniteNumber(y)) {
+        return err("BAD_ICE", "ice coordinates must be finite numbers, got (" +
+          String(x) + ", " + String(y) + ")");
+      }
+      if (typeof ctx.getIce !== "function") {
+        return err("NO_ICE_CHANNEL", "this sandbox has no ice channel — it " +
+          "predates the iceAt wire-up (Step 5.8)");
+      }
+      const r = ctx.getIce(x, y);
+      if (!r || typeof r !== "object" || Array.isArray(r)) {
+        return err("INTERNAL", "getIce returned a non-object — the wire-up is broken");
+      }
+      return r;
+    }),
+
+    // The seeded weather driver (Step 5.8), pure: weatherAt(seed,
+    // t, season) with no ctx needed. Same inputs give the same
+    // {temp, rain, wind}; bad input is BAD_WEATHER, never a throw.
+    weatherSample: safe((seed, t, season) => {
+      if (!isFiniteNumber(seed) || !isFiniteNumber(t) || !isFiniteNumber(season)) {
+        return err("BAD_WEATHER", "weatherSample needs finite (seed, t, season), got (" +
+          String(seed) + ", " + String(t) + ", " + String(season) + ")");
+      }
+      if (t < 0) {
+        return err("BAD_WEATHER", "t must be >= 0, got " + String(t));
+      }
+      if (season < 0 || season > 1) {
+        return err("BAD_WEATHER", "season must be in [0, 1], got " + String(season));
+      }
+      const w = weatherAt(seed, t, season);
+      return { ok: true, temp: w.temp, rain: w.rain, wind: w.wind };
     }),
 
     // Internal: called by the sandbox on Reset (and only there). Clears
