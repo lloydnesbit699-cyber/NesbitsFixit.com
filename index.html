@@ -150,15 +150,18 @@
   footer b { color: #e9f1ec; }
   footer a { color: #8ff5c3; }
 </style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230a1211'/%3E%3Ctext x='50' y='70' font-size='62' text-anchor='middle' fill='%238ff5c3' font-family='sans-serif' font-weight='bold'%3EC%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/tour.css">
 </head>
 <body>
 <div class="wrap">
   <div class="kicker">Crumbs Vault Development</div>
-  <h1>Welcome &mdash; this is where we build.</h1>
+  <h1 id="tour-welcome">Welcome &mdash; this is where we build.</h1>
   <p class="welcome">Crumbs Vault is a small independent studio in Moultrie, Georgia. We build software and games that put you in charge of your own screen &mdash; <em>your layout, your rules, your machine.</em> Here&rsquo;s what&rsquo;s live now.</p>
+  <button type="button" id="cv-tour-start" class="tour-entry">Take the tour</button>
 
   <div class="section">
-    <div class="section-head orange">Crumbs World</div>
+    <div class="section-head orange" id="tour-crumbs">Crumbs World</div>
     <p class="section-desc">The game itself. A world to explore, creatures to meet, and a dragon or two.</p>
     <div class="grid">
       <a class="pill" href="/crumbs-world/">
@@ -174,7 +177,7 @@
 
   <div class="section">
   <div class="section">
-    <div class="section-head purple">Veli&rsquo;Thra qo&rsquo;choH</div>
+    <div class="section-head purple" id="tour-velithra">Veli&rsquo;Thra qo&rsquo;choH</div>
     <p class="section-desc">Reality, rearranged. Veli&rsquo;Thra is a browser extension that lets you move, resize, recolor, and rename the controls on any website &mdash; in your own browser, on your own machine. Your layouts save only to your own computer. Nothing is uploaded, nothing is shared, and the website itself is never changed.</p>
     <div class="grid">
       <a class="pill" href="https://chromewebstore.google.com/detail/velithra-qochoh/plfjjlfpcmelagpcmofnhcegbejdbmll">
@@ -192,7 +195,7 @@
     </div>
 
     <div class="pricing-head">Pricing</div>
-    <div class="price-grid">
+    <div class="price-grid" id="tour-pricing">
       <div class="price-card">
         <h3>Free</h3>
         <div class="price">$0</div>
@@ -222,7 +225,7 @@
     <p class="price-note">Veli'Thra is live now &mdash; install it free from the Chrome Web Store and start rearranging. Paid plans open soon.</p>
   </div>
 
-    <div class="section-head green">The Showcase</div>
+    <div class="section-head green" id="tour-showcase">The Showcase</div>
     <p class="section-desc">Everything we&rsquo;re building, on display &mdash; the Living River, the Dragon Bench, Aetherion, and more.</p>
     <div class="grid">
       <a class="pill" href="/showcase/">
@@ -233,7 +236,7 @@
   </div>
 
   <div class="section">
-    <div class="section-head slate">Nesbit&rsquo;s Fix-It</div>
+    <div class="section-head slate" id="tour-fixit">Nesbit&rsquo;s Fix-It</div>
     <p class="section-desc">The repair business that started it all &mdash; home maintenance and tech repair in Moultrie, Georgia. It has moved to its own home.</p>
     <div class="grid">
       <a class="pill" href="https://nesbitsfixit.com/">
@@ -243,12 +246,13 @@
     </div>
   </div>
 
-  <footer>
+  <footer id="tour-footer">
     <b>Crumbs Vault Development</b> &middot; Moultrie, GA<br>
     Support: crumbzdevops26@gmail.com<br>
     <a href="/terms.html">Terms of Service</a> &middot; <a href="/velithra/privacy.html">Privacy Policy</a><br>
     &copy; 2026 Crumbs Vault Development. Crumbs Vault is operated by Lloyd David Nesbit.
   </footer>
 </div>
+<script src="/tour.js" defer></script>
 </body>
 </html>

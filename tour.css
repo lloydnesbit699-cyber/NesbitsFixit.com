@@ -1,0 +1,170 @@
+/* Crumbs Vault site tour — bench house style: dark canvas, mint pills.
+   Dependency-free; loaded by the home page, the Showcase, and the
+   Crumbs World front door. The tour only runs on the home page;
+   the other pages show a "Back to the tour" pill when a tour is
+   waiting to be resumed. */
+
+/* The entry pill on the home page. */
+.tour-entry {
+  appearance: none;
+  display: inline-block;
+  background: #8ff5c3;
+  color: #0b1f16;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 48px;
+  margin-bottom: 36px;
+}
+.tour-entry:active { transform: scale(.97); }
+.tour-entry:focus-visible {
+  outline: 3px solid #e9f1ec;
+  outline-offset: 3px;
+}
+
+/* The spotlight highlight on the step's target — mint, following
+   Veli'Thra's tour highlight shape (outline + glow). */
+.cv-tour-hl {
+  outline: 3px solid #8ff5c3 !important;
+  outline-offset: 4px;
+  border-radius: 14px;
+  box-shadow: 0 0 22px 6px rgba(143, 245, 195, .45) !important;
+}
+
+/* The tour card: fixed at the bottom so it never covers the
+   highlighted element, which is scrolled to the middle. */
+#cv-tour-card {
+  display: none;
+  position: fixed;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(520px, calc(100vw - 28px));
+  max-height: 62vh;
+  overflow-y: auto;
+  z-index: 9999;
+  background: #16211f;
+  color: #e9f1ec;
+  border: 1px solid rgba(143, 245, 195, .45);
+  border-radius: 18px;
+  padding: 16px 18px 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .6);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+#cv-tour-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+#cv-tour-label {
+  color: #8ff5c3;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+#cv-tour-close {
+  appearance: none;
+  background: transparent;
+  color: #93aca3;
+  border: none;
+  border-radius: 999px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+#cv-tour-close:active { color: #e9f1ec; }
+#cv-tour-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+#cv-tour-text {
+  color: #c4d6cc;
+  font-size: .98rem;
+  margin: 0 0 12px;
+}
+#cv-tour-visit {
+  display: none;
+  margin: 0 0 14px;
+}
+#cv-tour-visit a {
+  display: inline-block;
+  background: #8ff5c3;
+  color: #0b1f16;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: .95rem;
+  text-decoration: none;
+  min-height: 44px;
+  line-height: 24px;
+}
+#cv-tour-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#cv-tour-btns button {
+  appearance: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: .95rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 44px;
+}
+#cv-tour-back {
+  background: transparent;
+  color: #e9f1ec;
+  border: 1px solid rgba(233, 241, 236, .35);
+}
+#cv-tour-back:disabled {
+  opacity: .4;
+  cursor: default;
+}
+#cv-tour-next {
+  background: #8ff5c3;
+  color: #0b1f16;
+  border: 1px solid #8ff5c3;
+}
+#cv-tour-skip {
+  background: transparent;
+  color: #93aca3;
+  border: none;
+  font-weight: 600;
+}
+
+/* The resume pill, shown when a tour is waiting. */
+#cv-tour-resume {
+  display: none;
+  position: fixed;
+  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 9998;
+  background: #8ff5c3;
+  color: #0b1f16;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-size: .95rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 48px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .5);
+  text-decoration: none;
+  line-height: 24px;
+}
+#cv-tour-resume:active { transform: scale(.97); }
