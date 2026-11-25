@@ -8,6 +8,9 @@
 :root{color-scheme:dark;--bg:#071117;--panel:#101d25;--line:#29434f;--ink:#e8f2f4;--muted:#9db3bd;--accent:#79d4c2}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px system-ui, sans-serif}
 header{padding:11px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+#sizebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 15px;background:var(--panel);border-bottom:1px solid var(--line)}
+#sizebar span{font-size:12px;color:var(--muted)}
+#sizebar select{max-width:100%}
 h1{font-size:17px;margin:0}header span{font-size:12px;color:var(--muted)}
 main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;padding:12px;max-width:1600px;margin:auto}
 #stage{height:min(75vh,800px);min-height:440px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#10252b;position:relative}
@@ -37,6 +40,7 @@ button{cursor:pointer}button:hover{border-color:var(--accent)}button.active{back
 </head>
 <body>
 <header><h1>Living River Lab · Map Sandbox</h1><span id="creatureSummary">15 creatures · 5 families · resizable watershed · seasons &amp; day/night</span><span id="status">● INITIALIZING</span></header>
+<div id="sizebar"><span>Map size</span><select id="mapSize"><option value="104x72">104 × 72 · current (7,488 cells)</option><option value="156x108">156 × 108 (16,848 cells)</option><option value="208x144">208 × 144 (29,952 cells)</option><option value="312x216">312 × 216 (67,392 cells)</option><option value="416x288">416 × 288 (119,808 cells)</option><option value="520x360">520 × 360 (187,200 cells)</option></select></div>
 <main>
 <section>
 <div id="stage"><div id="loading">Building the river basin and creature rig…</div><div id="tags"></div></div>
@@ -62,7 +66,6 @@ button{cursor:pointer}button:hover{border-color:var(--accent)}button.active{back
 <div class="small">Precipitation adds depth — rain in spring, summer and autumn; slow drifting snow in winter, with snow on the ground. Wind sways plants and roughens the water. Heat evaporates depth and dries animals faster. At 0 °C or below the surface freezes — visual only, the solver keeps running. One full day/night cycle is 1 real hour; at night creatures move slower and rest sooner.</div>
 </div>
 <div class="panel"><h2>Map</h2>
-<label>Map size</label><select id="mapSize"><option value="104x72">104 × 72 · current (7,488 cells)</option><option value="156x108">156 × 108 (16,848 cells)</option><option value="208x144">208 × 144 (29,952 cells)</option><option value="312x216">312 × 216 (67,392 cells)</option><option value="416x288">416 × 288 (119,808 cells)</option><option value="520x360">520 × 360 (187,200 cells)</option></select>
 <div class="row"><span>Sim cells</span><strong id="cells">—</strong></div>
 <div class="row"><span>Water vertices</span><strong id="waterVerts">—</strong></div>
 <div class="row"><span>Plants</span><strong id="plantCount">—</strong></div>
