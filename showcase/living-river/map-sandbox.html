@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
 <title>Living River Lab · Map Sandbox</title>
 <style>
 :root{color-scheme:dark;--bg:#071117;--panel:#101d25;--line:#29434f;--ink:#e8f2f4;--muted:#9db3bd;--accent:#79d4c2}
@@ -403,8 +404,10 @@ function fluidStep(dt){
  // is the roll-up the API + the surface readout report.
  let wetN=0,frozenN=0,thickSum=0,thickMax=0;
  for(let k=0;k<NN;k++){
-  if(H[k]>Wx.WET_DEPTH_MIN){ice[k]=Wx.stepIce(ice[k],temp,dt);}
-  else if(temp>0&&ice[k]>0){ice[k]=Wx.stepIce(ice[k],temp,dt);}
+  if(dt>0){ // first frame has dt==0: no time passed, no ice change (stepIce still throws on bad dt from any other caller)
+   if(H[k]>Wx.WET_DEPTH_MIN){ice[k]=Wx.stepIce(ice[k],temp,dt);}
+   else if(temp>0&&ice[k]>0){ice[k]=Wx.stepIce(ice[k],temp,dt);}
+  }
   if(H[k]>Wx.WET_DEPTH_MIN){wetN++;thickSum+=ice[k];if(ice[k]>thickMax)thickMax=ice[k];if(ice[k]>=Wx.FROZEN_THRESHOLD)frozenN++;}
  }
  iceSummary={frozenFraction:wetN?frozenN/wetN:0,meanThickness:wetN?thickSum/wetN:0,maxThickness:thickMax};
