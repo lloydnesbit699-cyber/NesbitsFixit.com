@@ -11,7 +11,10 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: #0a1211;
+    background:
+      linear-gradient(rgba(10, 18, 17, .84), rgba(10, 18, 17, .90)),
+      url('/crumbs-world/images/vault-background.jpg') center top / cover no-repeat fixed,
+      #0a1211;
     color: #e9f1ec;
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     line-height: 1.5;
@@ -52,10 +55,31 @@
     border-radius: 14px;
     margin-bottom: 10px;
   }
-  .section-head.green { background: linear-gradient(90deg, #1d5c3a, #2e8b57); }
-  .section-head.orange { background: linear-gradient(90deg, #7a3d1d, #b06a2e); }
-  .section-head.purple { background: linear-gradient(90deg, #4a2d6b, #6e4a9e); }
-  .section-head.slate { background: linear-gradient(90deg, #2a3433, #3d4a48); }
+  .section-head.green {
+    background:
+      linear-gradient(90deg, rgba(10,18,17,.92) 0%, rgba(10,18,17,.60) 50%, rgba(10,18,17,.15) 100%),
+      url('/showcase/aetherion-front-34.jpg') center 20% / cover no-repeat;
+    border-bottom: 4px solid #2e8b57;
+  }
+  .section-head.orange {
+    background:
+      linear-gradient(90deg, rgba(10,18,17,.92) 0%, rgba(10,18,17,.65) 50%, rgba(10,18,17,.45) 100%),
+      url('/crumbs-world/images/aetherion.png') center 45% / cover no-repeat;
+    border-bottom: 4px solid #b06a2e;
+  }
+  .section-head.purple {
+    background:
+      url('/velithra/store-icon-128.png') right 14px center / auto 78% no-repeat,
+      linear-gradient(90deg, #4a2d6b, #6e4a9e);
+    background-blend-mode: lighten, normal;
+    border-bottom: 4px solid #6e4a9e;
+  }
+  .section-head.slate {
+    background:
+      url('/nesbits_logo_sides_tilted.png') right 14px center / auto 92% no-repeat,
+      linear-gradient(90deg, #2a3433, #3d4a48);
+    border-bottom: 4px solid #3d4a48;
+  }
   .section-desc {
     color: #93aca3;
     font-size: .95rem;
@@ -134,12 +158,28 @@
   <p class="welcome">Crumbs Vault is a small independent studio in Moultrie, Georgia. We build software and games that put you in charge of your own screen &mdash; <em>your layout, your rules, your machine.</em> Here&rsquo;s what&rsquo;s live now.</p>
 
   <div class="section">
+    <div class="section-head orange">Crumbs World</div>
+    <p class="section-desc">The game itself. A world to explore, creatures to meet, and a dragon or two.</p>
+    <div class="grid">
+      <a class="pill" href="/crumbs-world/">
+        <b>Enter the world</b>
+        <span>The front door.</span>
+      </a>
+      <a class="pill" href="/crumbs-world/play/">
+        <b>Play</b>
+        <span>Straight into the game.</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="section">
+  <div class="section">
     <div class="section-head purple">Veli&rsquo;Thra qo&rsquo;choH</div>
     <p class="section-desc">Reality, rearranged. Veli&rsquo;Thra is a browser extension that lets you move, resize, recolor, and rename the controls on any website &mdash; in your own browser, on your own machine. Your layouts save only to your own computer. Nothing is uploaded, nothing is shared, and the website itself is never changed.</p>
     <div class="grid">
       <a class="pill" href="https://chromewebstore.google.com/detail/velithra-qochoh/plfjjlfpcmelagpcmofnhcegbejdbmll">
         <b>Get it on the Chrome Web Store</b>
-        <span>Free &mdash; install it in one tap.</span>
+        <span>Free &mdash; 1 website, install it in one tap.</span>
       </a>
       <a class="pill" href="/showcase/velithra/">
         <b>Try the demo</b>
@@ -179,25 +219,9 @@
         <p>Unlimited websites, forever. Available through December 22, 2026.</p>
       </div>
     </div>
-    <p class="price-note">Paid plans open soon. The Free plan is live now &mdash; install it from the Chrome Web Store and start rearranging.</p>
+    <p class="price-note">Veli'Thra is live now &mdash; install it free from the Chrome Web Store and start rearranging. Paid plans open soon.</p>
   </div>
 
-  <div class="section">
-    <div class="section-head orange">Crumbs World</div>
-    <p class="section-desc">The game itself. A world to explore, creatures to meet, and a dragon or two.</p>
-    <div class="grid">
-      <a class="pill" href="/crumbs-world/">
-        <b>Enter the world</b>
-        <span>The front door.</span>
-      </a>
-      <a class="pill" href="/crumbs-world/play/">
-        <b>Play</b>
-        <span>Straight into the game.</span>
-      </a>
-    </div>
-  </div>
-
-  <div class="section">
     <div class="section-head green">The Showcase</div>
     <p class="section-desc">Everything we&rsquo;re building, on display &mdash; the Living River, the Dragon Bench, Aetherion, and more.</p>
     <div class="grid">
@@ -212,12 +236,11 @@
     <div class="section-head slate">Nesbit&rsquo;s Fix-It</div>
     <p class="section-desc">The repair business that started it all &mdash; home maintenance and tech repair in Moultrie, Georgia. It has moved to its own home.</p>
     <div class="grid">
-      <a class="pill" href="https://fixit.nesbitsfixit.com/">
-        <b>Visit fixit.nesbitsfixit.com</b>
-        <span>Same David, same honest pricing &mdash; new address.</span>
+      <a class="pill" href="https://nesbitsfixit.com/">
+        <b>Visit nesbitsfixit.com</b>
+        <span>Same David, same honest pricing &mdash; same address.</span>
       </a>
     </div>
-    <p class="price-note">The new address goes live once the move completes.</p>
   </div>
 
   <footer>
