@@ -25,10 +25,11 @@ API catalog: https://crumbsvault.com/.well-known/api-catalog
 
 ## Agent registration
 
-Agent registration uses the user-claimed `service_auth` flow. An agent never creates a player account and never receives the human's password.
+Agent registration uses the user-claimed verified-email flow (`identity_assertion` with `verified_email`, also accepted as `service_auth`). An agent never creates a player account and never receives the human's password.
 
 - `register_uri`: https://crumbsvault.com/agent/identity
-- `identity_types_supported`: `service_auth`
+- `identity_types_supported`: `identity_assertion`, `service_auth`
+- `assertion_types_supported`: `verified_email`
 - `claim_uri`: https://crumbsvault.com/agent/claim
 - `token_endpoint`: https://crumbsvault.com/oauth2/token
 - `revocation_endpoint`: https://crumbsvault.com/oauth2/revoke
@@ -36,7 +37,7 @@ Agent registration uses the user-claimed `service_auth` flow. An agent never cre
 - Scope: `crumbs.read`
 
 Flow:
-1. The agent sends `POST /agent/identity` with `{"type": "service_auth", "login_hint": "<the human's email>"}`.
+1. The agent sends `POST /agent/identity` with `{"type": "identity_assertion", "assertion_type": "verified_email", "login_hint": "<the human's email>"}`.
 2. The server returns a `device_code`, a short `user_code`, and the claim URI.
 3. The human signs in to Crumbs World themselves, opens the claim URI (which sends them to the game sign-in host), and enters the `user_code`. Claim completion requires the human's real signed-in session; the owner account's registered-device gate still applies.
 4. The agent polls `POST /oauth2/token` with the device-code grant. Before the claim it receives `authorization_pending`; after the claim it receives a short-lived Bearer access token.
@@ -60,7 +61,7 @@ Crumbs World player accounts are provisioned by the human user through the game'
 ## Supported methods
 
 - `anonymous` read-only access to the public endpoints above.
-- `service_auth` user-claimed agent registration for scoped Bearer-token access.
+- `identity_assertion` (`verified_email`) and `service_auth` user-claimed agent registration for scoped Bearer-token access.
 - `user-provisioned` account access through the human's own browser session.
 
 ## Contact
