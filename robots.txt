@@ -3,3 +3,4 @@ Allow: /
 Content-Signal: ai-train=no, search=yes, ai-input=no
 
 Sitemap: https://crumbsvault.com/sitemap.xml
+Agentmap: https://crumbsvault.com/.well-known/ai-catalog.json
