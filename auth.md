@@ -5,8 +5,8 @@ This document describes how AI agents may access Crumbs Vault services on behalf
 Discovery:
 - OAuth authorization server metadata: https://crumbsvault.com/.well-known/oauth-authorization-server
 - OAuth protected resource metadata: https://crumbsvault.com/.well-known/oauth-protected-resource
-- Game authorization server issuer: https://hestia.tail1044f8.ts.net
-- JWKS: https://hestia.tail1044f8.ts.net/oauth2/jwks.json
+- Authorization server issuer: https://crumbsvault.com
+- JWKS: https://crumbsvault.com/oauth2/jwks.json
 
 ## Audience
 
@@ -27,18 +27,18 @@ API catalog: https://crumbsvault.com/.well-known/api-catalog
 
 Agent registration uses the user-claimed `service_auth` flow. An agent never creates a player account and never receives the human's password.
 
-- `register_uri`: https://hestia.tail1044f8.ts.net/agent/identity
+- `register_uri`: https://crumbsvault.com/agent/identity
 - `identity_types_supported`: `service_auth`
-- `claim_uri`: https://hestia.tail1044f8.ts.net/agent/claim
-- `token_endpoint`: https://hestia.tail1044f8.ts.net/oauth2/token
-- `revocation_endpoint`: https://hestia.tail1044f8.ts.net/oauth2/revoke
+- `claim_uri`: https://crumbsvault.com/agent/claim
+- `token_endpoint`: https://crumbsvault.com/oauth2/token
+- `revocation_endpoint`: https://crumbsvault.com/oauth2/revoke
 - Grant type: `urn:ietf:params:oauth:grant-type:device_code`
 - Scope: `crumbs.read`
 
 Flow:
 1. The agent sends `POST /agent/identity` with `{"type": "service_auth", "login_hint": "<the human's email>"}`.
 2. The server returns a `device_code`, a short `user_code`, and the claim URI.
-3. The human signs in to Crumbs World themselves, opens the claim URI, and enters the `user_code`. Claim completion requires the human's real signed-in session; the owner account's registered-device gate still applies.
+3. The human signs in to Crumbs World themselves, opens the claim URI (which sends them to the game sign-in host), and enters the `user_code`. Claim completion requires the human's real signed-in session; the owner account's registered-device gate still applies.
 4. The agent polls `POST /oauth2/token` with the device-code grant. Before the claim it receives `authorization_pending`; after the claim it receives a short-lived Bearer access token.
 5. The agent calls protected endpoints with `Authorization: Bearer <token>`. The first protected endpoint is `GET /api/agent/me`, which returns the bound username and scope.
 6. Tokens expire after one hour and can be cancelled at the revocation endpoint.
