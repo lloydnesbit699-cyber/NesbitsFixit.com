@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "crumbs-world-agent-access",
+      "type": "skill-md",
+      "description": "Register an AI agent for Crumbs World with a player-claimed OAuth token and call the agent APIs.",
+      "url": "https://crumbsvault.com/.well-known/agent-skills/crumbs-world-agent-access/SKILL.md",
+      "digest": "sha256:89533e7c820c10795de30d7abb5a65355ad6076e5ddabfcce4abf2e5a1bf4840"
+    },
+    {
+      "name": "crumbs-world-status",
+      "type": "skill-md",
+      "description": "Check whether Crumbs World is up and read its public agent discovery documents.",
+      "url": "https://crumbsvault.com/.well-known/agent-skills/crumbs-world-status/SKILL.md",
+      "digest": "sha256:851502b581a829e3a36fb01bdcb181e55932f948fa6ed28d0d020d4a855a3859"
+    }
+  ]
+}
