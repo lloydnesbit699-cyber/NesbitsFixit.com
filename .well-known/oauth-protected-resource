@@ -1,1 +1,1 @@
-{"authorization_servers":["https://crumbsvault.com"],"bearer_methods_supported":["header"],"resource":"https://crumbsvault.com/api","scopes_supported":["crumbs.read"]}
+{"authorization_servers":["https://crumbsvault.com"],"bearer_methods_supported":["header"],"resource":"https://crumbsvault.com","scopes_supported":["crumbs.read"]}
