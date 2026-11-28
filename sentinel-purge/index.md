@@ -10,4 +10,4 @@ Join the tester list: https://docs.google.com/forms/d/e/1FAIpQLSfBOB5I152VTDbisK
 
 ## Price sketch
 
-Free to test. Launch sketch: Free checks, Basic $3.99 monthly (Android only), iOS paid.
+Free to test. Launch sketch: Basic free (Android only), iOS $3.99 monthly.
