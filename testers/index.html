@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crumbs Vault — Tester Home</title>
+<style>
+  body { margin:0; font-family: system-ui, sans-serif; background:#0d0a1c; color:#f3ead6; }
+  .hero { padding:48px 20px 28px; text-align:center; background:linear-gradient(115deg,#1c0a34,#5c262a 55%,#941c52); }
+  .hero h1 { font-family:'Courier New',monospace; letter-spacing:3px; text-transform:uppercase; margin:0 0 8px; font-size:30px; }
+  .hero p { margin:0; color:#d8cdb4; }
+  .wrap { max-width:880px; margin:0 auto; padding:24px 16px 48px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
+  .card { background:#17142a; border:2px solid #2a3a5f; border-radius:18px; padding:18px; }
+  .card h2 { margin:0 0 8px; font-size:19px; }
+  .card p, .card li { color:#d8cdb4; line-height:1.5; }
+  .card ul { margin:8px 0 0; padding-left:20px; }
+  .btn { display:inline-block; margin-top:12px; padding:12px 22px; border-radius:999px; background:#c9973f; color:#141311; font-weight:700; text-decoration:none; }
+  .btn:focus-visible { outline:3px solid #7dffb0; outline-offset:2px; }
+  .note { color:#8f8672; font-size:14px; margin-top:20px; }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <h1>Tester Home</h1>
+    <p>Your assigned tasks and projects, from inside your profile.</p>
+  </header>
+  <main class="wrap">
+    <div class="grid">
+      <section class="card">
+        <h2>Your profile</h2>
+        <p>Sign in with your game profile to reach your tester access, worlds, and assignments.</p>
+        <a class="btn" href="https://crumbsvault.com/crumbs-world/">Sign in to Crumbs World</a>
+      </section>
+      <section class="card">
+        <h2>Assigned tasks</h2>
+        <ul>
+          <li>Stage 9 guided playtest — Melody's journal, shared map, roaming</li>
+          <li>Passkey enrollment — set up passkey sign-in on your device</li>
+          <li>Sentinel Purge kit — run the tester kit and report results</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>Projects</h2>
+        <ul>
+          <li>Crumbs World — vault-dungeon game</li>
+          <li>Sentinel Purge — phone cleanup tester builds</li>
+        </ul>
+        <a class="btn" href="https://crumbsvault.com/sentinel-purge/">Sentinel Purge testers</a>
+      </section>
+    </div>
+    <p class="note">Assignments are tied to your tester profile. New here? Join through the official tester sign-up, then sign in above.</p>
+  </main>
+</body>
+</html>
