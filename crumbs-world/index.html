@@ -10,28 +10,44 @@
   :root {
     --gold: #D4AF37;
     --gold-dim: #a8872a;
-    --bg: #141414;
-    --panel: #1e1e1e;
-    --card: #262626;
+    --bg: #050508;
+    --panel: #121521;
+    --card: #1e232f;
     --text: #e8e0cc;
     --muted: #b8ad90;
+    --ink-1: #941c52;
+    --ink-2: #5c262a;
+    --ink-3: #1c0a34;
+    --stamp: #7cbc54;
+    --mint: #8ff5c3;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background-color: var(--bg);
     background-image:
       radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.10), transparent 55%),
-      linear-gradient(rgba(20,20,20,0.80), rgba(20,20,20,0.88)),
+      radial-gradient(ellipse at 50% 30%, rgba(18,21,33,0.55), transparent 70%),
+      linear-gradient(rgba(5,5,8,0.86), rgba(5,5,8,0.93)),
       url("images/vault-background.jpg");
-    background-size: auto, auto, cover;
-    background-position: center top, center, center top;
-    background-attachment: scroll, scroll, fixed;
+    background-size: auto, auto, auto, cover;
+    background-position: center top, center, center, center top;
+    background-attachment: scroll, scroll, scroll, fixed;
     background-repeat: no-repeat;
     color: var(--text);
     font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
     line-height: 1.5;
     min-height: 100vh;
+    overflow-x: hidden;
   }
+  /* foil grain + vignette, signature layer */
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+    background:
+      radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 3px);
+    mix-blend-mode: soft-light;
+  }
+  nav, header, main, .chat, footer { position: relative; z-index: 2; }
   a { color: var(--gold); text-decoration: none; }
   a:hover { text-decoration: underline; }
 
@@ -52,22 +68,61 @@
   .nav-icons a { color: var(--text); }
   .nav-icons a:hover { color: var(--gold); text-decoration: none; }
 
-  /* ---- hero ---- */
+  /* ---- hero: foil banner ---- */
   header { text-align: center; padding: 2.6rem 1rem 2rem; }
+  .foil-banner {
+    position: relative; display: inline-block; max-width: 100%;
+    padding: 1.6rem 2.4rem 1.4rem; border-radius: 14px;
+    background:
+      linear-gradient(115deg, rgba(148,28,82,0.20), rgba(28,10,52,0.35) 45%, rgba(92,38,42,0.20)),
+      linear-gradient(180deg, #1e232f, #121521);
+    border: 1px solid rgba(212,175,55,0.45);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.14), inset 0 0 60px rgba(148,28,82,0.12);
+    overflow: hidden;
+  }
+  .foil-banner::after {
+    content: ""; position: absolute; inset: -40%;
+    background: linear-gradient(100deg, transparent 42%, rgba(255,255,255,0.13) 50%, transparent 58%);
+    animation: foil-sheen 7s ease-in-out infinite; pointer-events: none;
+  }
+  @keyframes foil-sheen {
+    0%, 100% { transform: translateX(-38%) rotate(2deg); }
+    50% { transform: translateX(38%) rotate(2deg); }
+  }
   header h1 {
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(2.4rem, 7vw, 4.2rem);
-    letter-spacing: 0.06em; color: var(--gold);
-    text-shadow: 0 0 24px rgba(212,175,55,0.35), 0 2px 0 #6b5510;
-    font-weight: normal;
+    font-family: "Courier New", Courier, monospace;
+    font-size: clamp(2rem, 6.5vw, 3.6rem);
+    letter-spacing: 0.14em; font-weight: bold;
+    background: linear-gradient(100deg, #e8c95a, var(--gold) 30%, #f3e2a0 50%, var(--gold) 70%, #b08d2a);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: var(--gold);
+    filter: drop-shadow(0 2px 0 rgba(28,10,52,0.9)) drop-shadow(0 0 18px rgba(212,175,55,0.25));
+  }
+  .lobby-stamp {
+    position: absolute; top: 0.7rem; right: 0.8rem; z-index: 2;
+    font-family: "Courier New", Courier, monospace; font-weight: bold;
+    font-size: 0.72rem; letter-spacing: 0.22em; color: var(--stamp);
+    border: 2px solid var(--stamp); border-radius: 4px;
+    padding: 0.18rem 0.5rem; transform: rotate(6deg);
+    background: rgba(5,5,8,0.45); text-transform: uppercase;
   }
   header .emblem { font-size: 1.6rem; margin: 0.2rem 0 0.4rem; }
   header p.tagline { color: var(--muted); font-size: 1.05rem; letter-spacing: 0.05em; }
+  .lobby-board {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
+    margin-top: 1.1rem; font-family: "Courier New", Courier, monospace;
+  }
+  .lobby-board a {
+    font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--text); border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(5,5,8,0.5); border-radius: 999px; padding: 0.35rem 0.9rem;
+  }
+  .lobby-board a:hover { color: var(--mint); border-color: var(--mint); text-decoration: none; }
   .btn-gold {
     display: inline-block; margin-top: 1.3rem;
     background: linear-gradient(180deg, #e8c95a, var(--gold) 55%, #b08d2a);
     color: #1a1405; font-weight: 700; letter-spacing: 0.18em;
-    padding: 0.85rem 3.2rem; border-radius: 6px;
+    padding: 0.85rem 3.2rem; border-radius: 999px;
     border: 1px solid #8a6d1f;
     box-shadow: 0 4px 18px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.5);
     font-size: 1.05rem; text-transform: uppercase;
@@ -81,15 +136,16 @@
     display: grid; grid-template-columns: 300px 1fr 300px; gap: 1.5rem; align-items: start;
   }
   .panel {
-    background: var(--panel);
+    background: linear-gradient(180deg, rgba(30,35,47,0.92), rgba(18,21,33,0.95));
     border: 1px solid var(--gold-dim);
-    border-radius: 10px;
+    border-radius: 14px;
     padding: 1.3rem 1.2rem;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
   }
   .panel h2 {
-    font-family: Georgia, "Times New Roman", serif; font-weight: normal;
-    color: var(--gold); font-size: 1.25rem; letter-spacing: 0.05em;
+    font-family: "Courier New", Courier, monospace; font-weight: bold;
+    color: var(--gold); font-size: 1.15rem; letter-spacing: 0.14em;
+    text-transform: uppercase;
     margin-bottom: 1rem; text-align: center;
   }
 
@@ -100,7 +156,7 @@
     border: 1px solid #4a4230; background: #121212; color: var(--text);
     font-size: 0.95rem;
   }
-  .login input:focus { outline: none; border-color: var(--gold); }
+  .login input:focus { outline: 2px solid var(--mint); outline-offset: 1px; border-color: var(--mint); }
   .login .btn-gold { display: block; text-align: center; padding: 0.7rem 1rem; margin-top: 1.1rem; width: 100%; }
   .login button.btn-gold { font-family: inherit; font-size: 0.95rem; cursor: pointer; }
   .login button.btn-gold:disabled { opacity: 0.6; cursor: default; }
@@ -157,6 +213,8 @@
   @media (max-width: 520px) {
     .adventurers-grid { grid-template-columns: 1fr; }
     .adventurer .portrait { height: 300px; }
+    .foil-banner { padding: 2.7rem 1.2rem 1.3rem; }
+    .lobby-stamp { top: 0.55rem; right: 0.6rem; }
   }
 </style>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230a1211'/%3E%3Ctext x='50' y='70' font-size='62' text-anchor='middle' fill='%238ff5c3' font-family='sans-serif' font-weight='bold'%3EC%3C/text%3E%3C/svg%3E">
@@ -180,11 +238,20 @@
 </nav>
 
 <header id="play">
-  <h1>CRUMBS WORLD</h1>
-  <div class="emblem">&#128009;</div>
-  <p class="tagline">A vault dungeon adventure</p>
-  <a class="btn-gold" href="#login">Play</a>
-  <p class="tagline" style="margin-top:1rem; font-size:0.92rem;">The vault is open. Step inside and play.</p>
+  <div class="foil-banner">
+    <div class="lobby-stamp">Lobby Open</div>
+    <h1>CRUMBS WORLD</h1>
+    <div class="emblem">&#128009;</div>
+    <p class="tagline">A vault dungeon adventure</p>
+    <a class="btn-gold" href="#login">Play</a>
+    <p class="tagline" style="margin-top:1rem; font-size:0.92rem;">The vault is open. Step inside and play.</p>
+    <div class="lobby-board" aria-label="Lobby board">
+      <a href="#login">First Village</a>
+      <a href="#login">Shrine Road</a>
+      <a href="#login">Flight Grounds</a>
+      <a href="#login">The Workshop</a>
+    </div>
+  </div>
 </header>
 
 <main>
