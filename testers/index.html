@@ -49,12 +49,21 @@
         <select id="tp-kind"><option value="p2o">To owner</option><option value="p2p">To a profile</option></select>
         <input id="tp-to" placeholder="Profile name (p2p only)"><textarea id="tp-text" rows="2" placeholder="Message"></textarea>
         <button class="btn" id="tp-send" type="button">Send</button><div id="tp-send-msg"></div></section>
-    </div>
+    
+      <section class="card"><h2>Group chat</h2><div id="tp-group">Sign in to join the tester group.</div>
+        <input id="tp-gtext" placeholder="Message the group"><button class="btn" id="tp-gsend" type="button">Send to group</button><div id="tp-gsend-msg"></div></section>
+      <section class="card"><h2>Onsite mail</h2><div id="tp-mail">Sign in to read mail.</div>
+        <input id="tp-mto" placeholder="Profile name"><input id="tp-msubj" placeholder="Subject"><textarea id="tp-mtext" rows="2" placeholder="Mail"></textarea>
+        <button class="btn" id="tp-msend" type="button">Send mail</button><div id="tp-msend-msg"></div></section>
+</div>
 <script>
 var API="https://hestia.tail1044f8.ts.net";
 function j(u,o){o=o||{};o.credentials="include";return fetch(API+u,o).then(function(r){return r.json()})}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function load(){
+ j("/api/messages/inbox").then(function(m){if(m.ok){var g=m.messages.filter(function(x){return x.kind==="group"});document.getElementById("tp-group").innerHTML=g.length?g.map(function(x){return "<div><b>"+esc(x.from)+"</b><div>"+esc(x.text)+"</div></div>"}).join(""):"No group messages yet.";}});
+ j("/api/mail/inbox").then(function(m){if(m.ok)document.getElementById("tp-mail").innerHTML=m.mail.length?m.mail.map(function(x){return "<div><b>"+esc(x.subject)+"</b> — "+esc(x.from)+"<div>"+esc(x.text)+"</div></div>"}).join(""):"No mail yet."});
+
  j("/api/tester/home").then(function(h){if(!h.ok){document.getElementById("tp-home").textContent=h.error||"Testers only";return}
   var s="<div>Access: "+h.access.map(function(a){return esc(a.project)+" (all tiers, free)"}).join(", ")+"</div><div>Total logged: "+Math.round(h.total_minutes/60*10)/10+" h</div>";
   h.projects.forEach(function(p){s+="<div><b>"+esc(p.name)+"</b>";p.stages.forEach(function(st){s+="<div>"+esc(st.name)+" — "+esc(st.details)+"</div>"});s+="</div>"});
@@ -63,8 +72,14 @@ function load(){
  j("/api/messages/inbox").then(function(m){if(m.ok)document.getElementById("tp-msgs").innerHTML=m.messages.length?m.messages.map(function(x){return "<div><b>"+esc(x.from)+"</b> ("+esc(x.kind)+")<div>"+esc(x.text)+"</div></div>"}).join(""):"No messages yet."});
 }
 load();
+
+ j("/api/messages/inbox").then(function(m){if(m.ok){var g=m.messages.filter(function(x){return x.kind==="group"});document.getElementById("tp-group").innerHTML=g.length?g.map(function(x){return "<div><b>"+esc(x.from)+"</b><div>"+esc(x.text)+"</div></div>"}).join(""):"No group messages yet.";}});
+ j("/api/mail/inbox").then(function(m){if(m.ok)document.getElementById("tp-mail").innerHTML=m.mail.length?m.mail.map(function(x){return "<div><b>"+esc(x.subject)+"</b> — "+esc(x.from)+"<div>"+esc(x.text)+"</div></div>"}).join(""):"No mail yet."});
 document.getElementById("tp-log").addEventListener("click",function(){j("/api/tester/log-hours",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project:document.getElementById("tp-project").value,stage:document.getElementById("tp-stage").value,minutes:+document.getElementById("tp-minutes").value})}).then(function(r){document.getElementById("tp-log-msg").textContent=r.ok?"Logged.":(r.error||"Failed");if(r.ok)load();});});
 document.getElementById("tp-send").addEventListener("click",function(){j("/api/messages/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind:document.getElementById("tp-kind").value,to:document.getElementById("tp-to").value,text:document.getElementById("tp-text").value})}).then(function(r){document.getElementById("tp-send-msg").textContent=r.ok?"Sent.":(r.error||"Failed");if(r.ok)load();});});
+
+document.getElementById("tp-gsend").addEventListener("click",function(){j("/api/messages/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind:"group",text:document.getElementById("tp-gtext").value})}).then(function(r){document.getElementById("tp-gsend-msg").textContent=r.ok?"Sent.":(r.error||"Failed");if(r.ok)load();});});
+document.getElementById("tp-msend").addEventListener("click",function(){j("/api/mail/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:document.getElementById("tp-mto").value,subject:document.getElementById("tp-msubj").value,text:document.getElementById("tp-mtext").value})}).then(function(r){document.getElementById("tp-msend-msg").textContent=r.ok?"Sent.":(r.error||"Failed");if(r.ok)load();});});
 </script>
 <p class="note">New here? Join through the official tester sign-up, then sign in above to open your profile door.</p>
   </main>
