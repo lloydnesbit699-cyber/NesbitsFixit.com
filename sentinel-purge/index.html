@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentinel Purge — Check First, Change Nothing Without Your Tap</title>
+<link rel="alternate" type="text/markdown" href="/sentinel-purge/index.md">
+<meta name="description" content="Sentinel Purge is a phone bench that starts read-only: storage intake, checks, and plain reports. Cleanup runs only after a dry run and your confirmation. Testers wanted.">
+<style>
+  :root { --gold:#D4AF37; --gold-dim:#a8872a; --scarlet:#c0392b; --midnight:#16265c; --bg:#141414; --panel:#1e1e1e; --card:#262626; --text:#e8e0cc; --muted:#b8ad90; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background-color:var(--bg); background-image: radial-gradient(ellipse at 50% 0%, rgba(212,175,55,.10), transparent 55%), linear-gradient(rgba(20,20,20,.82), rgba(20,20,20,.90)), url("../crumbs-world/images/vault-background.jpg"); background-size:auto,auto,cover; background-position:center top,center,center top; background-attachment:scroll,scroll,fixed; background-repeat:no-repeat; color:var(--text); font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif; line-height:1.55; min-height:100vh; }
+  a { color:var(--gold); text-decoration:none; } a:hover { text-decoration:underline; }
+  nav { display:flex; align-items:center; gap:2rem; padding:.7rem 1.5rem; border-bottom:1px solid #3a3220; background:rgba(0,0,0,.35); position:sticky; top:0; z-index:10; }
+  .brand { font-family:Georgia,"Times New Roman",serif; font-weight:bold; letter-spacing:.08em; color:var(--gold); font-size:1.05rem; white-space:nowrap; }
+  .nav-links { display:flex; gap:1.8rem; margin:0 auto; } .nav-links a { color:var(--text); font-size:.95rem; letter-spacing:.04em; } .nav-links a:hover { color:var(--gold); text-decoration:none; } .nav-links a.here { color:var(--gold); border-bottom:2px solid var(--scarlet); }
+  header { text-align:center; padding:2.4rem 1rem 1.4rem; }
+  header h1 { font-family:Georgia,"Times New Roman",serif; font-size:clamp(2rem,6vw,3.4rem); letter-spacing:.05em; color:var(--gold); text-shadow:0 0 24px rgba(212,175,55,.35),0 2px 0 #6b5510; font-weight:normal; }
+  header p { color:var(--muted); max-width:720px; margin:.6rem auto 0; }
+  main { max-width:980px; margin:0 auto; padding:1rem 1.25rem 2.5rem; display:grid; gap:1.4rem; }
+  .panel { background:var(--panel); border:1px solid var(--gold-dim); border-radius:10px; padding:1.4rem 1.3rem; box-shadow:0 6px 24px rgba(0,0,0,.45); }
+  .panel h2 { font-family:Georgia,"Times New Roman",serif; font-weight:normal; color:var(--gold); font-size:1.35rem; letter-spacing:.04em; margin-bottom:.7rem; border-left:6px solid var(--scarlet); padding-left:.6rem; }
+  .panel p { color:var(--muted); margin-bottom:.6rem; } .panel p b { color:var(--text); }
+  .btn-gold { display:inline-block; margin-top:.6rem; background:linear-gradient(180deg,#e8c95a,var(--gold) 55%,#b08d2a); color:#1a1405; font-weight:700; letter-spacing:.08em; padding:.8rem 2rem; border-radius:6px; border:1px solid #8a6d1f; box-shadow:0 4px 18px rgba(212,175,55,.35); text-transform:uppercase; font-size:.95rem; }
+  .btn-gold:hover { text-decoration:none; filter:brightness(1.07); }
+  .request { background:var(--midnight); border:2px solid var(--gold); }
+  .request .tag { display:inline-block; background:var(--scarlet); color:#fff; font-weight:700; letter-spacing:.06em; padding:.25rem .8rem; border-radius:999px; font-size:.85rem; text-transform:uppercase; margin-bottom:.7rem; }
+  .request p { color:#dbe4ff; }
+  .cards { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.8rem; }
+  .card { background:var(--card); border:1px solid #4a4230; border-radius:8px; padding:1rem; }
+  .card h3 { color:var(--gold); font-size:1rem; margin-bottom:.35rem; } .card p { font-size:.92rem; margin:0; }
+  ul { color:var(--muted); margin:.4rem 0 .4rem 1.2rem; } li { margin-bottom:.35rem; } li b { color:var(--text); }
+  footer { text-align:center; padding:1.6rem 1rem 2rem; border-top:1px solid #3a3220; color:#8d8271; font-size:.85rem; }
+  @media (max-width:700px){ .nav-links{display:none;} .cards{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">SENTINEL PURGE</div>
+  <div class="nav-links">
+    <a href="../">Home</a>
+    <a href="../crumbs-world/">Crumbs World</a>
+    <a class="here" href="./">Sentinel Purge</a>
+  </div>
+</nav>
+<header>
+  <h1>Check first. Change nothing without your tap.</h1>
+  <p>Sentinel Purge is a phone bench that starts read-only: storage intake, checks, and plain reports you can read.</p>
+</header>
+<main>
+  <section class="panel request">
+    <span class="tag">Testers wanted — start here</span>
+    <h2>Join the tester list</h2>
+    <p>Sign up, run it on a phone you own, and submit your test data so results can be checked. You need a phone you own and a computer to run it from.</p>
+    <a class="btn-gold" href="https://docs.google.com/forms/d/e/1FAIpQLSfBOB5I152VTDbisKc8PFdJunCKWPrujld59BnPB0RJUM880w/viewform">Join the tester list</a>
+  </section>
+  <section class="panel">
+    <h2>How it works</h2>
+    <div class="cards">
+      <div class="card"><h3>1. Intake</h3><p>Storage intake and device status, read safely first.</p></div>
+      <div class="card"><h3>2. Checks</h3><p>Read-only cache, storage, popup, and malware-flag checks with plain reports.</p></div>
+      <div class="card"><h3>3. Dry run</h3><p>Cleanup is a plan first. You see exactly what would change.</p></div>
+      <div class="card"><h3>4. Your tap</h3><p>Nothing changes until you confirm. No deletions behind your back.</p></div>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Price sketch</h2>
+    <p>Free to test. Launch sketch: <b>Free checks</b>, <b>Sentinel Purge $3.99 monthly</b>. No tiers.</p>
+  </section>
+</main>
+<footer>Sentinel Purge — part of the Crumbs Vault family.</footer>
+</body>
+</html>
